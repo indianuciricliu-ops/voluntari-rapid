@@ -93,6 +93,29 @@ def login():
             flash('Email sau parola gresite.', 'danger')
     return render_template('login.html')
 
+@app.route('/init-db-secret-rapid1923')
+def init_db():
+    try:
+        db.create_all()
+        from werkzeug.security import generate_password_hash
+        admin = Voluntar.query.filter_by(email='admin@rapid.ro').first()
+        if not admin:
+            admin = Voluntar(
+                nume='Admin',
+                prenume='Rapid',
+                email='admin@rapid.ro',
+                telefon='0700000000',
+                departament='Conducere',
+                rol='admin',
+                parola=generate_password_hash('Rapid1923!'),
+                activ=True
+            )
+            db.session.add(admin)
+            db.session.commit()
+            return 'SUCCESS: Admin creat in PostgreSQL!'
+        return f'Admin exista deja: {admin.email}'
+    except Exception as e:
+        return f'EROARE: {str(e)}'
 
 @app.route('/logout')
 @login_required
