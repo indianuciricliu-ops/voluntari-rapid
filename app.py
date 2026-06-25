@@ -351,22 +351,28 @@ def qr_voluntar(voluntar_id):
 
 @app.route('/init-db-secret-rapid1923')
 def init_db():
-    from werkzeug.security import generate_password_hash
-    db.create_all()
-    from models import Voluntar
-    admin = Voluntar.query.filter_by(email='admin@rapid.ro').first()
-    if not admin:
-        admin = Voluntar(
-            nume='Admin',
-            prenume='Rapid',
-            email='admin@rapid.ro',
-            parola=generate_password_hash('Rapid1923!'),
-            rol='admin'
-        )
-        db.session.add(admin)
-        db.session.commit()
-        return 'Admin creat cu succes!'
-    return 'Admin exista deja!'
+    try:
+        db.create_all()
+        from werkzeug.security import generate_password_hash
+        admin = Voluntar.query.filter_by(email='admin@rapid.ro').first()
+        if not admin:
+            admin = Voluntar(
+                nume='Admin',
+                prenume='Rapid',
+                email='admin@rapid.ro',
+                telefon='0700000000',
+                departament='Conducere',
+                rol='admin',
+                parola=generate_password_hash('Rapid1923!'),
+                activ=True
+            )
+            db.session.add(admin)
+            db.session.commit()
+            return 'SUCCESS: Admin creat! Email: admin@rapid.ro | Parola: Rapid1923!'
+        else:
+            return f'Admin exista deja! Email: {admin.email} | Parola hash: {admin.parola[:30]}...'
+    except Exception as e:
+        return f'EROARE: {str(e)}'
 
 @app.route('/checkin/<int:voluntar_id>')
 def checkin_qr(voluntar_id):
