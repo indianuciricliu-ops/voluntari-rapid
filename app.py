@@ -93,15 +93,6 @@ def login():
             flash('Email sau parola gresite.', 'danger')
     return render_template('login.html')
 
-@app.route('/check-users-rapid1923')
-def check_users():
-    users = Voluntar.query.all()
-    if not users:
-        return 'Baza de date este GOALA - niciun user!'
-    result = ''
-    for u in users:
-        result += f'ID:{u.id} | Email:{u.email} | Rol:{u.rol} | Activ:{u.activ}<br>'
-    return result
 
 @app.route('/logout')
 @login_required
@@ -349,30 +340,6 @@ def qr_voluntar(voluntar_id):
     img_b64 = base64.b64encode(buf.getvalue()).decode()
     return render_template('qr.html', v=v, img_b64=img_b64, url=url)
 
-@app.route('/init-db-secret-rapid1923')
-def init_db():
-    try:
-        db.create_all()
-        from werkzeug.security import generate_password_hash
-        admin = Voluntar.query.filter_by(email='admin@rapid.ro').first()
-        if not admin:
-            admin = Voluntar(
-                nume='Admin',
-                prenume='Rapid',
-                email='admin@rapid.ro',
-                telefon='0700000000',
-                departament='Conducere',
-                rol='admin',
-                parola=generate_password_hash('Rapid1923!'),
-                activ=True
-            )
-            db.session.add(admin)
-            db.session.commit()
-            return 'SUCCESS: Admin creat! Email: admin@rapid.ro | Parola: Rapid1923!'
-        else:
-            return f'Admin exista deja! Email: {admin.email} | Parola hash: {admin.parola[:30]}...'
-    except Exception as e:
-        return f'EROARE: {str(e)}'
 
 @app.route('/checkin/<int:voluntar_id>')
 def checkin_qr(voluntar_id):
