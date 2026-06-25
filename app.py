@@ -290,6 +290,13 @@ def check_subs():
     subs = PushSubscription.query.all()
     return f'Subscriptii in DB: {len(subs)}'
 
+@app.route('/sw.js')
+def service_worker():
+    return app.send_static_file('sw.js'), 200, {
+        'Content-Type': 'application/javascript',
+        'Service-Worker-Allowed': '/'
+    }
+
 @app.route('/evenimente/<int:id>/editeaza', methods=['GET', 'POST'])
 @login_required
 def eveniment_editeaza(id):
