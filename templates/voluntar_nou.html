@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voluntar Nou — Rapid</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, sans-serif; background: #f7f6f2; color: #1f1720; }
+    .topbar { background: linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .topbar a { color:#ffcdd2; font-size:14px; text-decoration:none; }
+    .main { padding:28px; max-width:600px; }
+    h2 { font-size:24px; margin-bottom:24px; }
+    .form-group { margin-bottom:18px; }
+    label { font-size:14px; font-weight:600; display:block; margin-bottom:6px; }
+    input, select {
+      width:100%; padding:12px 14px; border:1.5px solid #ddd;
+      border-radius:10px; font-size:15px; outline:none;
+    }
+    input:focus, select:focus { border-color:#6b0018; }
+    .btn { padding:12px 24px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; margin-left:10px; }
+    .card { background:#fff; border-radius:16px; padding:28px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
+  <a href="{{ url_for('voluntari') }}">← Înapoi la voluntari</a>
+</div>
+<div class="main">
+  <h2>Adaugă voluntar nou</h2>
+  <div class="card">
+    <form method="POST">
+      <div class="form-group">
+        <label>Prenume *</label>
+        <input type="text" name="prenume" required placeholder="ex: Andrei"/>
+      </div>
+      <div class="form-group">
+        <label>Nume *</label>
+        <input type="text" name="nume" required placeholder="ex: Ionescu"/>
+      </div>
+      <div class="form-group">
+        <label>Email *</label>
+        <input type="email" name="email" required placeholder="andrei@rapid.ro"/>
+      </div>
+      <div class="form-group">
+        <label>Telefon</label>
+        <input type="text" name="telefon" placeholder="07xx xxx xxx"/>
+      </div>
+      <div class="form-group">
+        <label>Departament</label>
+        <select name="departament">
+          <option value="">Selectează departament</option>
+          <option>Acces</option>
+          <option>Logistica</option>
+          <option>Media</option>
+          <option>Tribune</option>
+          <option>Siguranta</option>
+          <option>Catering</option>
+          <option>Loje</option>
+          <option>Facilitati</option>
+          <option>eSports</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <select name="rol">
+          <option value="voluntar">Voluntar</option>
+          <option value="coordonator">Coordonator</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Parolă temporară *</label>
+        <input type="text" name="parola" required placeholder="Parola initiala pentru cont"/>
+      </div>
+      <button type="submit" class="btn btn-primary">Salvează voluntarul</button>
+      <a href="{{ url_for('voluntari') }}" class="btn btn-outline">Anulează</a>
+    </form>
+  </div>
+</div>
+</body>
+</html>

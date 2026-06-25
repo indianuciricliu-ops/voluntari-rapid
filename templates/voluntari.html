@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voluntari — Rapid</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, sans-serif; background: #f7f6f2; color: #1f1720; }
+    .topbar {
+      background: linear-gradient(90deg, #6b0018, #8e1231);
+      color: #fff; padding: 16px 28px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 800; }
+    .nav-links { display: flex; gap: 16px; }
+    .nav-links a { color: #ffcdd2; font-size: 14px; text-decoration: none; font-weight: 600; }
+    .nav-links a:hover { color: #fff; }
+    .main { padding: 28px; }
+    .toolbar {
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+    }
+    .toolbar input, .toolbar select {
+      padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 10px;
+      font-size: 14px; outline: none;
+    }
+    .toolbar input:focus, .toolbar select:focus { border-color: #6b0018; }
+    .btn {
+      padding: 10px 18px; border-radius: 10px; font-size: 14px;
+      font-weight: 700; cursor: pointer; border: none; text-decoration: none; display: inline-block;
+    }
+    .btn-primary { background: #6b0018; color: #fff; }
+    .btn-primary:hover { background: #8e1231; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn-outline { background: transparent; border: 1.5px solid #ddd; color: #333; }
+    .btn-danger { background: #f8d7da; color: #721c24; }
+    table { width: 100%; border-collapse: collapse; background: #fff;
+            border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+    th { background: #f7f6f2; padding: 14px 16px; text-align: left;
+         font-size: 13px; font-weight: 700; color: #888; }
+    td { padding: 14px 16px; border-top: 1px solid #f0eef0; font-size: 14px; }
+    tr:hover td { background: #fdf5f6; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .admin { background: #ffd7dd; color: #6b0018; }
+    .coordonator { background: #fff3cd; color: #856404; }
+    .voluntar { background: #d4edda; color: #155724; }
+    .dept { background: #e8f0fe; color: #1a56db; }
+    .alert { padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; font-weight: 500; }
+    .alert-success { background: #d4edda; color: #155724; }
+    .alert-danger { background: #f8d7da; color: #721c24; }
+    .alert-info { background: #d1ecf1; color: #0c5460; }
+    .empty { text-align: center; padding: 48px; color: #aaa; }
+    .count { font-size: 13px; color: #888; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
+  <div class="nav-links">
+    <a href="{{ url_for('index') }}">Dashboard</a>
+    <a href="{{ url_for('voluntari') }}">Voluntari</a>
+    <a href="{{ url_for('logout') }}">Deconectare</a>
+  </div>
+</div>
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="toolbar">
+    <form method="GET" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <input type="text" name="q" value="{{ cautare }}" placeholder="Caută după nume sau email..."/>
+      <select name="departament">
+        <option value="">Toate departamentele</option>
+        {% for d in departamente %}
+          <option value="{{ d }}" {% if dept==d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline">Caută</button>
+      {% if cautare or dept %}
+        <a href="{{ url_for('voluntari') }}" class="btn btn-outline">Resetează</a>
+      {% endif %}
+    </form>
+    <a href="{{ url_for('voluntar_nou') }}" class="btn btn-primary">+ Voluntar nou</a>
+  </div>
+
+  <div class="count">{{ voluntari|length }} voluntari găsiți</div>
+
+  {% if voluntari %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nume</th>
+        <th>Email</th>
+        <th>Telefon</th>
+        <th>Departament</th>
+        <th>Rol</th>
+        <th>Acțiuni</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in voluntari %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td><strong>{{ v.prenume }} {{ v.nume }}</strong></td>
+        <td>{{ v.email }}</td>
+        <td>{{ v.telefon or '—' }}</td>
+        <td><span class="badge dept">{{ v.departament or '—' }}</span></td>
+        <td><span class="badge {{ v.rol }}">{{ v.rol }}</span></td>
+        <td style="display:flex; gap:6px;">
+          <a href="{{ url_for('voluntar_profil', id=v.id) }}" class="btn btn-sm btn-outline">Profil</a>
+          <a href="{{ url_for('qr_voluntar', voluntar_id=v.id) }}" class="btn btn-sm btn-outline">QR</a>
+          <a href="{{ url_for('voluntar_editeaza', id=v.id) }}" class="btn btn-sm btn-primary">Editează</a>
+          <a href="{{ url_for('voluntar_dezactiveaza', id=v.id) }}"
+             class="btn btn-sm btn-danger"
+             onclick="return confirm('Dezactivezi {{ v.prenume }}?')">Dezactivează</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <p>Niciun voluntar găsit.</p>
+    <a href="{{ url_for('voluntar_nou') }}" class="btn btn-primary" style="margin-top:16px;">Adaugă primul voluntar</a>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

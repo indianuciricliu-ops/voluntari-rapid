@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR — {{ v.prenume }} {{ v.nume }}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#fff; border-radius:20px; padding:36px; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,.1); max-width:340px; width:100%; }
+    .logo { font-size:16px; font-weight:800; color:#6b0018; margin-bottom:20px; }
+    img { width:220px; height:220px; border-radius:12px; margin-bottom:16px; }
+    h2 { font-size:22px; font-weight:800; margin-bottom:4px; }
+    p { color:#888; font-size:14px; margin-bottom:6px; }
+    .badge { display:inline-block; padding:5px 12px; border-radius:999px; font-size:12px; font-weight:700; background:#ffd7dd; color:#6b0018; margin-bottom:20px; }
+    .url { font-size:11px; color:#bbb; word-break:break-all; }
+    .btn { display:block; margin-top:18px; padding:12px; background:#6b0018; color:#fff; border-radius:12px; text-decoration:none; font-weight:700; }
+    @media print { .btn { display:none; } body { background:#fff; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🔴⚪ Volunteer Manager Rapid 1923</div>
+    <img src="data:image/png;base64,{{ img_b64 }}" alt="QR Code {{ v.prenume }}"/>
+    <h2>{{ v.prenume }} {{ v.nume }}</h2>
+    <p>{{ v.departament }}</p>
+    <span class="badge">{{ v.rol }}</span>
+    <div class="url">{{ url }}</div>
+    <a href="#" onclick="window.print()" class="btn">🖨️ Printează QR</a>
+  </div>
+</body>
+</html>

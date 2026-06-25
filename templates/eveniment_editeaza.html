@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Editează Eveniment — Rapid</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
+    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .topbar a { color:#ffcdd2; font-size:14px; text-decoration:none; }
+    .main { padding:28px; max-width:620px; }
+    h2 { font-size:24px; margin-bottom:24px; }
+    .card { background:#fff; border-radius:16px; padding:28px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+    .form-group { margin-bottom:18px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    label { font-size:14px; font-weight:600; display:block; margin-bottom:6px; }
+    input, select, textarea { width:100%; padding:12px 14px; border:1.5px solid #ddd; border-radius:10px; font-size:15px; outline:none; font-family:inherit; }
+    input:focus, select:focus, textarea:focus { border-color:#6b0018; }
+    textarea { resize:vertical; min-height:80px; }
+    .btn { padding:12px 24px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; margin-left:10px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
+  <a href="{{ url_for('eveniment_detalii', id=e.id) }}">← Înapoi la eveniment</a>
+</div>
+<div class="main">
+  <h2>Editează eveniment</h2>
+  <div class="card">
+    <form method="POST">
+      <div class="form-group">
+        <label>Titlu eveniment *</label>
+        <input type="text" name="titlu" value="{{ e.titlu }}" required/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Adversar</label>
+          <input type="text" name="adversar" value="{{ e.adversar or '' }}"/>
+        </div>
+        <div class="form-group">
+          <label>Tip eveniment</label>
+          <select name="tip">
+            <option value="liga1" {% if e.tip=='liga1' %}selected{% endif %}>Liga 1</option>
+            <option value="cupa" {% if e.tip=='cupa' %}selected{% endif %}>Cupă</option>
+            <option value="amical" {% if e.tip=='amical' %}selected{% endif %}>Amical</option>
+            <option value="sedinta" {% if e.tip=='sedinta' %}selected{% endif %}>Ședință</option>
+            <option value="alta" {% if e.tip=='alta' %}selected{% endif %}>Altul</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data și ora meciului *</label>
+          <input type="datetime-local" name="data"
+                 value="{{ e.data.strftime('%Y-%m-%dT%H:%M') }}" required/>
+        </div>
+        <div class="form-group">
+          <label>Ora convocare</label>
+          <input type="datetime-local" name="ora_convocare"
+                 value="{{ e.ora_convocare.strftime('%Y-%m-%dT%H:%M') if e.ora_convocare else '' }}"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Locație</label>
+        <input type="text" name="locatie" value="{{ e.locatie or '' }}"/>
+      </div>
+      <div class="form-group">
+        <label>Descriere / note</label>
+        <textarea name="descriere">{{ e.descriere or '' }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Salvează modificările</button>
+      <a href="{{ url_for('eveniment_detalii', id=e.id) }}" class="btn btn-outline">Anulează</a>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pontaj — {{ e.titlu }}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
+    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .nav-links { display:flex; gap:16px; }
+    .nav-links a { color:#ffcdd2; font-size:14px; text-decoration:none; font-weight:600; }
+    .main { padding:28px; }
+    .event-banner { background:linear-gradient(135deg,#6b0018,#8e1231); color:#fff; border-radius:16px; padding:20px 24px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+    .event-banner h2 { font-size:20px; }
+    .event-banner p { opacity:.85; font-size:14px; margin-top:4px; }
+    .stats-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:24px; }
+    .stat-pill { background:#fff; border-radius:12px; padding:14px 20px; box-shadow:0 2px 10px rgba(0,0,0,.06); text-align:center; min-width:100px; }
+    .stat-pill .num { font-size:28px; font-weight:800; }
+    .stat-pill .lbl { font-size:12px; color:#888; margin-top:2px; }
+    .num-prezent { color:#155724; }
+    .num-absent { color:#721c24; }
+    .num-total { color:#6b0018; }
+    .dept-group { margin-bottom:24px; }
+    .dept-title { font-size:14px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid #e8e6e0; }
+    .vol-card { background:#fff; border-radius:14px; padding:16px 18px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 10px rgba(0,0,0,.05); gap:12px; flex-wrap:wrap; transition:all .2s; }
+    .vol-card.prezent { border-left:4px solid #28a745; }
+    .vol-card.absent { border-left:4px solid #dc3545; }
+    .vol-card.intarziat { border-left:4px solid #ffc107; }
+    .vol-card.nemarcat { border-left:4px solid #e0dede; }
+    .vol-info { display:flex; align-items:center; gap:12px; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:#f0eef0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#6b0018; flex-shrink:0; }
+    .vol-name { font-weight:700; font-size:15px; }
+    .vol-meta { font-size:12px; color:#aaa; }
+    .btn-group { display:flex; gap:6px; }
+    .btn-status { padding:8px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:2px solid transparent; transition:all .15s; }
+    .btn-prezent { background:#d4edda; color:#155724; border-color:#d4edda; }
+    .btn-prezent:hover, .btn-prezent.activ { background:#28a745; color:#fff; border-color:#28a745; }
+    .btn-absent { background:#f8d7da; color:#721c24; border-color:#f8d7da; }
+    .btn-absent:hover, .btn-absent.activ { background:#dc3545; color:#fff; border-color:#dc3545; }
+    .btn-intarziat { background:#fff3cd; color:#856404; border-color:#fff3cd; }
+    .btn-intarziat:hover, .btn-intarziat.activ { background:#ffc107; color:#333; border-color:#ffc107; }
+    .checkin-time { font-size:12px; color:#888; margin-top:4px; }
+    .toolbar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    .btn { padding:10px 18px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-success { background:#28a745; color:#fff; }
+    .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
+    .alert-success { background:#d4edda; color:#155724; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Pontaj Live</h1>
+  <div class="nav-links">
+    <a href="{{ url_for('eveniment_detalii', id=e.id) }}">← Înapoi la eveniment</a>
+    <a href="{{ url_for('evenimente') }}">Evenimente</a>
+  </div>
+</div>
+<div class="main">
+    <input type="hidden" id="eveniment-id" value="{{ e.id }}">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="event-banner">
+    <div>
+      <h2>{{ e.titlu }}</h2>
+      <p>📆 {{ e.data.strftime('%d %B %Y, %H:%M') }}
+      {% if e.locatie %} · 📍 {{ e.locatie }}{% endif %}</p>
+    </div>
+    <form method="POST" action="{{ url_for('pontaj_bulk', eveniment_id=e.id) }}" id="formBulk">
+      <button type="submit" class="btn btn-success">💾 Salvează tot pontajul</button>
+    </form>
+  </div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-pill"><div class="num num-total" id="statTotal">{{ voluntari|length }}</div><div class="lbl">Total</div></div>
+    <div class="stat-pill"><div class="num num-prezent" id="statPrezent">0</div><div class="lbl">Prezenți</div></div>
+    <div class="stat-pill"><div class="num num-absent" id="statAbsent">0</div><div class="lbl">Absenți</div></div>
+    <div class="stat-pill"><div class="num num-intarziat" id="statIntarziat">0</div><div class="lbl">Întârziați</div></div>
+    <div class="stat-pill"><div class="num" style="color:#aaa;" id="statNemarcat">{{ voluntari|length }}</div><div class="lbl">Nemarcați</div></div>
+  </div>
+
+  {% set departamente = voluntari | map(attribute='departament') | unique | list %}
+  {% for dept in departamente %}
+  <div class="dept-group">
+    <div class="dept-title">{{ dept or 'Fără departament' }}</div>
+    {% for v in voluntari if v.departament == dept %}
+    {% set p = pontaje.get(v.id) %}
+    {% set status_curent = p.status if p else 'nemarcat' %}
+    <div class="vol-card {{ status_curent }}" id="card-{{ v.id }}">
+      <div class="vol-info">
+        <div class="avatar">{{ v.prenume[0] }}{{ v.nume[0] }}</div>
+        <div>
+          <div class="vol-name">{{ v.prenume }} {{ v.nume }}</div>
+          <div class="vol-meta">{{ v.email }}</div>
+          <div class="checkin-time" id="time-{{ v.id }}">
+            {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <input type="hidden" name="prezenti" value="{{ v.id }}" form="formBulk"
+               id="inp-{{ v.id }}" {% if status_curent == 'prezent' %}checked{% endif %}>
+        <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
+        <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'intarziat', this)">⏰ Întârziat</button>
+        <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'absent', this)">❌ Absent</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  var statusMap = {{ pontaje_json | tojson | safe }};
+  var eventId = document.getElementById('eveniment-id').value;
+
+  function actualizeazaStats() {
+    var p=0, a=0, i=0, n=0;
+    for (var k in statusMap) {
+      var s = statusMap[k];
+      if (s==='prezent') p++;
+      else if (s==='absent') a++;
+      else if (s==='intarziat') i++;
+      else n++;
+    }
+    document.getElementById('statPrezent').textContent = p;
+    document.getElementById('statAbsent').textContent = a;
+    document.getElementById('statIntarziat').textContent = i;
+    document.getElementById('statNemarcat').textContent = n;
+  }
+
+  function marcheaza(voluntarId, status, btn) {
+    var card = document.getElementById('card-' + voluntarId);
+    card.className = 'vol-card ' + status;
+    card.querySelectorAll('.btn-status').forEach(function(b){ b.classList.remove('activ'); });
+    btn.classList.add('activ');
+    statusMap[voluntarId] = status;
+
+    var inp = document.getElementById('inp-' + voluntarId);
+    if (status === 'prezent') {
+      inp.setAttribute('name', 'prezenti');
+      var ora = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('time-' + voluntarId).innerHTML = '✅ Check-in: ' + ora;
+    } else {
+      inp.removeAttribute('name');
+      if (status === 'absent') document.getElementById('time-' + voluntarId).innerHTML = '';
+    }
+
+    fetch('/pontaj/' + eventId + '/marcheaza', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'voluntar_id=' + voluntarId + '&status=' + status
+    });
+
+    actualizeazaStats();
+  }
+
+  actualizeazaStats();
+</script>

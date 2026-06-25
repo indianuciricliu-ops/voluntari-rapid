@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Detalii Eveniment — Rapid</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
+    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .nav-links { display:flex; gap:16px; }
+    .nav-links a { color:#ffcdd2; font-size:14px; text-decoration:none; font-weight:600; }
+    .main { padding:28px; max-width:900px; }
+    .hero-card { background:linear-gradient(135deg,#6b0018,#8e1231); color:#fff; border-radius:20px; padding:28px; margin-bottom:24px; }
+    .hero-card h2 { font-size:28px; margin-bottom:10px; }
+    .hero-meta { display:flex; gap:20px; flex-wrap:wrap; font-size:14px; opacity:.9; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+    .card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+    .card h3 { font-size:16px; font-weight:800; margin-bottom:14px; }
+    .stat { font-size:32px; font-weight:800; }
+    .stat-label { color:#888; font-size:13px; margin-top:4px; }
+    .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .ok { background:#d4edda; color:#155724; }
+    .absent { background:#f8d7da; color:#721c24; }
+    .intarziat { background:#fff3cd; color:#856404; }
+    .disponibil { background:#d4edda; color:#155724; }
+    .indisponibil { background:#f8d7da; color:#721c24; }
+    table { width:100%; border-collapse:collapse; }
+    th { padding:10px 12px; text-align:left; font-size:13px; font-weight:700; color:#888; border-bottom:2px solid #f0eef0; }
+    td { padding:10px 12px; border-bottom:1px solid #f7f6f2; font-size:14px; }
+    .btn { padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; margin-right:8px; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; }
+    .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
+    .alert-success { background:#d4edda; color:#155724; }
+    @media(max-width:600px) { .grid2 { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
+  <div class="nav-links">
+    <a href="{{ url_for('evenimente') }}">← Evenimente</a>
+    <a href="{{ url_for('eveniment_editeaza', id=e.id) }}">Editează</a>
+    <a href="{{ url_for('logout') }}">Deconectare</a>
+  </div>
+</div>
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="hero-card">
+    <h2>{{ e.titlu }}</h2>
+    <div class="hero-meta">
+      <span>📆 {{ e.data.strftime('%d %B %Y, %H:%M') }}</span>
+      {% if e.ora_convocare %}<span>🕐 Convocare: {{ e.ora_convocare.strftime('%H:%M') }}</span>{% endif %}
+      {% if e.locatie %}<span>📍 {{ e.locatie }}</span>{% endif %}
+      {% if e.tip %}<span>🏷️ {{ e.tip }}</span>{% endif %}
+    </div>
+    {% if e.descriere %}<p style="margin-top:12px; opacity:.9; font-size:14px;">{{ e.descriere }}</p>{% endif %}
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>📊 Rezumat pontaj</h3>
+      <div class="stat">{{ prezenti|length }} / {{ toti_voluntarii|length }}</div>
+      <div class="stat-label">voluntari prezenți din total activi</div>
+    </div>
+    <div class="card">
+      <h3>✅ Confirmări primite</h3>
+      <div class="stat">{{ disponibili|length }}</div>
+      <div class="stat-label">disponibili · {{ indisponibili|length }} indisponibili</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px;">
+    <h3>👥 Confirmări voluntari</h3>
+    {% if disponibili or indisponibili %}
+    <table>
+      <thead><tr><th>Voluntar</th><th>Departament</th><th>Răspuns</th></tr></thead>
+      <tbody>
+        {% for c in disponibili %}
+        <tr>
+          <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
+          <td>{{ c.voluntar.departament }}</td>
+          <td><span class="badge disponibil">Disponibil</span></td>
+        </tr>
+        {% endfor %}
+        {% for c in indisponibili %}
+        <tr>
+          <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
+          <td>{{ c.voluntar.departament }}</td>
+          <td><span class="badge indisponibil">Indisponibil</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#aaa; font-size:14px;">Nicio confirmare primită încă.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+  <h3 style="margin:0;">📋 Pontaj meci</h3>
+  <a href="{{ url_for('pontaj', eveniment_id=e.id) }}"
+     style="background:#6b0018; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
+    ▶ Deschide pontaj live
+  </a>
+</div>
+    {% if pontaje %}
+    <table>
+      <thead><tr><th>Voluntar</th><th>Departament</th><th>Status</th><th>Check-in</th></tr></thead>
+      <tbody>
+        {% for p in pontaje %}
+        <tr>
+          <td>{{ p.voluntar.prenume }} {{ p.voluntar.nume }}</td>
+          <td>{{ p.voluntar.departament }}</td>
+          <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
+          <td>{{ p.ora_checkin.strftime('%H:%M') if p.ora_checkin else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#aaa; font-size:14px;">Pontajul nu a început încă.</p>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

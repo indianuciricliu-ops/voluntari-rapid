@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Evenimente — Rapid</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
+    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .nav-links { display:flex; gap:16px; }
+    .nav-links a { color:#ffcdd2; font-size:14px; text-decoration:none; font-weight:600; }
+    .nav-links a:hover { color:#fff; }
+    .main { padding:28px; }
+    .section-title { font-size:20px; font-weight:800; margin-bottom:16px; margin-top:28px; }
+    .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
+    .alert-success { background:#d4edda; color:#155724; }
+    .alert-info { background:#d1ecf1; color:#0c5460; }
+    .alert-danger { background:#f8d7da; color:#721c24; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:18px; }
+    .card {
+      background:#fff; border-radius:16px; padding:22px;
+      box-shadow:0 4px 20px rgba(0,0,0,.06);
+      border-left:5px solid #6b0018;
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .card.trecut { border-left-color:#ccc; opacity:.85; }
+    .card-title { font-size:18px; font-weight:800; }
+    .card-meta { font-size:13px; color:#888; display:flex; flex-direction:column; gap:4px; }
+    .tip-badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .liga1 { background:#ffd7dd; color:#6b0018; }
+    .cupa { background:#e8d5ff; color:#5b21b6; }
+    .amical { background:#d1ecf1; color:#0c5460; }
+    .sedinta { background:#fff3cd; color:#856404; }
+    .alta { background:#f0f0f0; color:#555; }
+    .card-actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
+    .btn { padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-primary:hover { background:#8e1231; }
+    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; }
+    .btn-danger { background:#f8d7da; color:#721c24; border:none; }
+    .btn-lg { padding:11px 22px; font-size:14px; }
+    .empty { text-align:center; padding:40px; color:#aaa; background:#fff; border-radius:16px; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
+  <div class="nav-links">
+    <a href="{{ url_for('index') }}">Dashboard</a>
+    <a href="{{ url_for('voluntari') }}">Voluntari</a>
+    <a href="{{ url_for('evenimente') }}">Evenimente</a>
+    <a href="{{ url_for('logout') }}">Deconectare</a>
+  </div>
+</div>
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="toolbar">
+    <div class="section-title" style="margin:0;">📅 Evenimente viitoare</div>
+    <a href="{{ url_for('eveniment_nou') }}" class="btn btn-primary btn-lg">+ Eveniment nou</a>
+  </div>
+
+  {% if viitoare %}
+  <div class="grid">
+    {% for e in viitoare %}
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <span class="tip-badge {{ e.tip or 'alta' }}">{{ e.tip or 'altul' }}</span>
+      </div>
+      <div class="card-title">{{ e.titlu }}</div>
+      <div class="card-meta">
+        <span>📆 {{ e.data.strftime('%d %b %Y, %H:%M') }}</span>
+        {% if e.ora_convocare %}
+        <span>🕐 Convocare: {{ e.ora_convocare.strftime('%H:%M') }}</span>
+        {% endif %}
+        {% if e.locatie %}
+        <span>📍 {{ e.locatie }}</span>
+        {% endif %}
+      </div>
+      {% if e.descriere %}
+      <div style="font-size:13px; color:#666;">{{ e.descriere }}</div>
+      {% endif %}
+      <div class="card-actions">
+        <a href="{{ url_for('eveniment_detalii', id=e.id) }}" class="btn btn-primary">Vezi detalii</a>
+        <a href="{{ url_for('eveniment_editeaza', id=e.id) }}" class="btn btn-outline">Editează</a>
+        <a href="{{ url_for('eveniment_anuleaza', id=e.id) }}"
+           class="btn btn-danger"
+           onclick="return confirm('Anulezi evenimentul?')">Anulează</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <p>Nu există evenimente viitoare.</p>
+    <a href="{{ url_for('eveniment_nou') }}" class="btn btn-primary" style="margin-top:14px;">Creează primul eveniment</a>
+  </div>
+  {% endif %}
+
+  {% if trecute %}
+  <div class="section-title">📁 Evenimente trecute</div>
+  <div class="grid">
+    {% for e in trecute %}
+    <div class="card trecut">
+      <span class="tip-badge {{ e.tip or 'alta' }}">{{ e.tip or 'altul' }}</span>
+      <div class="card-title">{{ e.titlu }}</div>
+      <div class="card-meta">
+        <span>📆 {{ e.data.strftime('%d %b %Y, %H:%M') }}</span>
+        {% if e.locatie %}<span>📍 {{ e.locatie }}</span>{% endif %}
+      </div>
+      <div class="card-actions">
+        <a href="{{ url_for('eveniment_detalii', id=e.id) }}" class="btn btn-outline">Vezi detalii</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

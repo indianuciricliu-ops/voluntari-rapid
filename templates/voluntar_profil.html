@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profil Voluntar — Rapid</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
+    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .nav-links { display:flex; gap:16px; }
+    .nav-links a { color:#ffcdd2; font-size:14px; text-decoration:none; font-weight:600; }
+    .main { padding:28px; max-width:800px; }
+    .hero { background:linear-gradient(135deg,#6b0018,#8e1231); color:#fff; border-radius:20px; padding:28px; margin-bottom:24px; display:flex; align-items:center; gap:20px; }
+    .avatar { width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; flex-shrink:0; }
+    .hero h2 { font-size:24px; margin-bottom:6px; }
+    .hero p { opacity:.85; font-size:14px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+    .card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+    .card h3 { font-size:15px; font-weight:800; margin-bottom:14px; color:#888; text-transform:uppercase; letter-spacing:.5px; }
+    .stat { font-size:36px; font-weight:800; color:#6b0018; }
+    .stat-label { font-size:13px; color:#aaa; margin-top:4px; }
+    .info-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f0eef0; font-size:14px; }
+    .info-row:last-child { border-bottom:none; }
+    .info-label { color:#888; }
+    .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .admin { background:#ffd7dd; color:#6b0018; }
+    .coordonator { background:#fff3cd; color:#856404; }
+    .voluntar { background:#d4edda; color:#155724; }
+    .btn { padding:10px 18px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; margin-right:8px; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; }
+    @media(max-width:600px) { .grid2 { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
+  <div class="nav-links">
+    <a href="{{ url_for('voluntari') }}">← Voluntari</a>
+    <a href="{{ url_for('voluntar_editeaza', id=v.id) }}">Editează</a>
+  </div>
+</div>
+<div class="main">
+  <div class="hero">
+    <div class="avatar">{{ v.prenume[0] }}{{ v.nume[0] }}</div>
+    <div>
+      <h2>{{ v.prenume }} {{ v.nume }}</h2>
+      <p>{{ v.email }} · {{ v.telefon or 'fără telefon' }}</p>
+      <span class="badge {{ v.rol }}" style="margin-top:8px; display:inline-block;">{{ v.rol }}</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Meciuri totale</h3>
+      <div class="stat">{{ total }}</div>
+      <div class="stat-label">evenimente la care a fost înscris</div>
+    </div>
+    <div class="card">
+      <h3>Prezențe confirmate</h3>
+      <div class="stat">{{ prezent }}</div>
+      <div class="stat-label">
+        {% if total > 0 %}{{ ((prezent / total) * 100) | round(0) | int }}% rată de prezență{% else %}—{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px;">
+    <h3>Date personale</h3>
+    <div class="info-row">
+      <span class="info-label">Departament</span>
+      <span>{{ v.departament or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Rol</span>
+      <span><span class="badge {{ v.rol }}">{{ v.rol }}</span></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Email</span>
+      <span>{{ v.email }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Telefon</span>
+      <span>{{ v.telefon or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Înscris din</span>
+      <span>{{ v.data_inscriere.strftime('%d %B %Y') }}</span>
+    </div>
+  </div>
+
+  <a href="{{ url_for('voluntar_editeaza', id=v.id) }}" class="btn btn-primary">Editează profil</a>
+  <a href="{{ url_for('voluntari') }}" class="btn btn-outline">Înapoi la listă</a>
+</div>
+</body>
+</html>
