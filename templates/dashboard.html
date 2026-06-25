@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="ro">
-      <!-- PWA -->
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Volunteer Manager Rapid</title>
+
+  <!-- PWA -->
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#6b0000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Rapid 1923">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-</head>
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard — Volunteer Manager Rapid</title>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
@@ -62,54 +63,13 @@
     .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
     .alert-success { background:#d4edda; color:#155724; }
     .alert-info { background:#d1ecf1; color:#0c5460; }
+    .btn-notif { background:#6b0018; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; display:flex; align-items:center; gap:8px; }
+    .btn-notif:disabled { background:#2d6a2d; cursor:default; }
     @media(max-width:768px) { .grid2 { grid-template-columns:1fr; } .kpi-grid { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/sw.js')
-        .then(() => console.log('PWA activ!'))
-        .catch(err => console.log('SW error:', err));
-    }
-  </script>
-  <script>
-async function initPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    
-    // Ia cheia publica
-    const res = await fetch('/api/vapid-public-key');
-    const { publicKey } = await res.json();
-    
-    // Converteste cheia
-    const key = Uint8Array.from(atob(publicKey.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
-    
-    // Cere permisiune si aboneaza
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: key
-    });
-    
-    // Trimite subscriptia la server
-    await fetch('/api/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub.toJSON())
-    });
-    
-    console.log('Push notifications activate!');
-  } catch(err) {
-    console.log('Push error:', err);
-  }
-}
-
-// Porneste dupa 2 secunde
-setTimeout(initPush, 2000);
-</script>
-</body>
 <body>
+
 <div class="topbar">
   <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
   <div class="nav-links">
@@ -119,6 +79,7 @@ setTimeout(initPush, 2000);
     <a href="{{ url_for('logout') }}">Deconectare</a>
   </div>
 </div>
+
 <div class="main">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
@@ -131,7 +92,10 @@ setTimeout(initPush, 2000);
       <h2>Bun venit, {{ current_user.prenume }} {{ current_user.nume }}! 👋</h2>
       <p>{{ acum.strftime('%A, %d %B %Y') }}</p>
     </div>
-    <span class="badge">{{ current_user.rol | upper }} — {{ current_user.departament }}</span>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span class="badge">{{ current_user.rol | upper }} — {{ current_user.departament }}</span>
+      <button class="btn-notif" id="btn-notificari" onclick="activareNotificari()">🔔 Activează notificările</button>
+    </div>
   </div>
 
   <div class="kpi-grid">
@@ -219,5 +183,55 @@ setTimeout(initPush, 2000);
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
   });
 </script>
+
+<script>
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js')
+      .then(() => console.log('SW inregistrat!'))
+      .catch(err => console.log('SW error:', err));
+  }
+
+  // Activare notificari
+  async function activareNotificari() {
+    const btn = document.getElementById('btn-notificari');
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Browser-ul tau nu suporta notificari push!');
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Notificarile au fost blocate. Activeaza-le din setarile browser-ului!');
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const res = await fetch('/api/vapid-public-key');
+      const { publicKey } = await res.json();
+      const key = Uint8Array.from(
+        atob(publicKey.replace(/-/g,'+').replace(/_/g,'/')),
+        c => c.charCodeAt(0)
+      );
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key
+      });
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON())
+      });
+      if (response.ok) {
+        btn.textContent = '✅ Notificari active!';
+        btn.style.background = '#2d6a2d';
+        btn.disabled = true;
+      }
+    } catch(err) {
+      alert('Eroare activare notificari: ' + err.message);
+      console.error(err);
+    }
+  }
+</script>
+
 </body>
 </html>
