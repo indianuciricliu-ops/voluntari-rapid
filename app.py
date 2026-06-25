@@ -93,6 +93,16 @@ def login():
             flash('Email sau parola gresite.', 'danger')
     return render_template('login.html')
 
+@app.route('/check-users-rapid1923')
+def check_users():
+    users = Voluntar.query.all()
+    if not users:
+        return 'Baza de date este GOALA - niciun user!'
+    result = ''
+    for u in users:
+        result += f'ID:{u.id} | Email:{u.email} | Rol:{u.rol} | Activ:{u.activ}<br>'
+    return result
+
 @app.route('/logout')
 @login_required
 def logout():
