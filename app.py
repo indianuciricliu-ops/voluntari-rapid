@@ -339,6 +339,25 @@ def qr_voluntar(voluntar_id):
     img_b64 = base64.b64encode(buf.getvalue()).decode()
     return render_template('qr.html', v=v, img_b64=img_b64, url=url)
 
+@app.route('/init-db-secret-rapid1923')
+def init_db():
+    from werkzeug.security import generate_password_hash
+    db.create_all()
+    from models import Voluntar
+    admin = Voluntar.query.filter_by(email='admin@rapid.ro').first()
+    if not admin:
+        admin = Voluntar(
+            nume='Admin',
+            prenume='Rapid',
+            email='admin@rapid.ro',
+            parola=generate_password_hash('Rapid1923!'),
+            rol='admin'
+        )
+        db.session.add(admin)
+        db.session.commit()
+        return 'Admin creat cu succes!'
+    return 'Admin exista deja!'
+
 @app.route('/checkin/<int:voluntar_id>')
 def checkin_qr(voluntar_id):
     from datetime import datetime
