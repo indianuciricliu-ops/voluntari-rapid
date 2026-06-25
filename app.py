@@ -283,6 +283,13 @@ def eveniment_detalii(id):
                            pontaje=pontaje, prezenti=prezenti,
                            toti_voluntarii=toti_voluntarii)
 
+@app.route('/check-subs')
+@login_required
+def check_subs():
+    from models import PushSubscription
+    subs = PushSubscription.query.all()
+    return f'Subscriptii in DB: {len(subs)}'
+
 @app.route('/evenimente/<int:id>/editeaza', methods=['GET', 'POST'])
 @login_required
 def eveniment_editeaza(id):
