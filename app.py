@@ -365,5 +365,8 @@ def checkin_qr(voluntar_id):
     return render_template('checkin_result.html', v=v, eveniment=eveniment,
                            mesaj=f'Check-in reușit pentru {eveniment.titlu}!', ok=True)
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
     app.run(debug=True)
