@@ -187,7 +187,7 @@
 <script>
   // Service Worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js')
+    navigator.serviceWorker.register('/sw.js')
       .then(() => console.log('SW inregistrat!'))
       .catch(err => console.log('SW error:', err));
   }
