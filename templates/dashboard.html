@@ -72,6 +72,42 @@
         .catch(err => console.log('SW error:', err));
     }
   </script>
+  <script>
+async function initPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    
+    // Ia cheia publica
+    const res = await fetch('/api/vapid-public-key');
+    const { publicKey } = await res.json();
+    
+    // Converteste cheia
+    const key = Uint8Array.from(atob(publicKey.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+    
+    // Cere permisiune si aboneaza
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: key
+    });
+    
+    // Trimite subscriptia la server
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+    
+    console.log('Push notifications activate!');
+  } catch(err) {
+    console.log('Push error:', err);
+  }
+}
+
+// Porneste dupa 2 secunde
+setTimeout(initPush, 2000);
+</script>
 </body>
 <body>
 <div class="topbar">

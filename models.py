@@ -52,3 +52,12 @@ class Confirmare(db.Model):
     eveniment_id = db.Column(db.Integer, db.ForeignKey('evenimente.id'), nullable=False)
     raspuns = db.Column(db.String(20))
     data_raspuns = db.Column(db.DateTime, default=datetime.utcnow)
+    
+class PushSubscription(db.Model):
+    __tablename__ = 'push_subscriptions'
+    id = db.Column(db.Integer, primary_key=True)
+    voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False, unique=True)
+    p256dh = db.Column(db.Text, nullable=False)
+    auth = db.Column(db.Text, nullable=False)
+    data_creare = db.Column(db.DateTime, default=datetime.utcnow)    

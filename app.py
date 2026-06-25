@@ -1,7 +1,8 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
 from models import db, Voluntar
+from pywebpush import webpush, WebPushException
 import os
 
 load_dotenv()
@@ -75,6 +76,27 @@ def index():
         top_voluntari=top_voluntari,
         acum=acum
     )
+
+@app.route('/api/vapid-public-key')
+def vapid_public_key():
+    return jsonify({'publicKey': os.environ.get('VAPID_PUBLIC_KEY')})
+
+@app.route('/api/subscribe', methods=['POST'])
+@login_required
+def subscribe():
+    from models import PushSubscription
+    data = request.get_json()
+    sub = PushSubscription.query.filter_by(endpoint=data['endpoint']).first()
+    if not sub:
+        sub = PushSubscription(
+            voluntar_id=current_user.id,
+            endpoint=data['endpoint'],
+            p256dh=data['keys']['p256dh'],
+            auth=data['keys']['auth']
+        )
+        db.session.add(sub)
+        db.session.commit()
+    return jsonify({'status': 'ok'})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -214,6 +236,30 @@ def eveniment_nou():
         )
         db.session.add(e)
         db.session.commit()
+
+        # Push notification la toti voluntarii
+        try:
+            from models import PushSubscription
+            from pywebpush import webpush
+            import json
+            subscriptions = PushSubscription.query.all()
+            for sub in subscriptions:
+                webpush(
+                    subscription_info={
+                        "endpoint": sub.endpoint,
+                        "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
+                    },
+                    data=json.dumps({
+                        "title": "Eveniment nou! 🔴⚪",
+                        "body": f"A fost adaugat: {e.titlu}",
+                        "url": "/evenimente"
+                    }),
+                    vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
+                    vapid_claims={"sub": os.environ.get('VAPID_EMAIL')}
+                )
+        except Exception as err:
+            print(f"Push error: {err}")
+
         flash(f'Evenimentul "{e.titlu}" a fost creat!', 'success')
         return redirect(url_for('evenimente'))
     return render_template('eveniment_nou.html')
