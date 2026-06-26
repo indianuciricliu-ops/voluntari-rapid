@@ -545,8 +545,22 @@ def service_worker():
     }
 
 
+# ══════════════════════════════════════
+# INITIALIZARE DB + MIGRARE AUTOMATA
+# ══════════════════════════════════════
 with app.app_context():
     db.create_all()
+    from sqlalchemy import text, inspect
+    with db.engine.connect() as conn:
+        try:
+            inspector = inspect(db.engine)
+            cols = [c['name'] for c in inspector.get_columns('confirmari')]
+            if 'ora_sosire' not in cols:
+                conn.execute(text('ALTER TABLE confirmari ADD COLUMN ora_sosire VARCHAR(10)'))
+                conn.commit()
+                print("✅ Migrare automata: ora_sosire adaugata")
+        except Exception as e:
+            print(f"Migrare info: {e}")
 
 
 if __name__ == '__main__':
