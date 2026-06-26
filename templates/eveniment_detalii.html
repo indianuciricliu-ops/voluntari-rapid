@@ -158,7 +158,7 @@
   <!-- ══════════════════════════════════════
        TABEL CONFIRMĂRI — doar admin/teamleader
        ══════════════════════════════════════ -->
-  {% if current_user.rol in ['admin', 'teamleader'] %}
+{% if current_user.rol in ['admin', 'teamleader'] %}
   <div class="card">
     <h3>👥 Confirmări voluntari</h3>
     {% if disponibili or indisponibili or nesiguri %}
@@ -166,34 +166,77 @@
       <thead>
         <tr>
           <th>Voluntar</th>
-          <th>Departament</th>
+          <th>Departament de bază</th>
           <th>Răspuns</th>
           <th>Interval sosire</th>
+          <th>Alocare la acest meci</th>
         </tr>
       </thead>
       <tbody>
+        {# ── VIN ── #}
         {% for c in disponibili %}
+        {% set alocare = alocari_dict.get(c.voluntar.id) %}
         <tr>
           <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
           <td>{{ c.voluntar.departament }}</td>
           <td><span class="badge vin">✅ Vine</span></td>
           <td>{{ c.ora_sosire if c.ora_sosire else '—' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('eveniment_alocare', id=e.id) }}">
+              <input type="hidden" name="voluntar_id" value="{{ c.voluntar.id }}">
+              <select name="departament" class="ora-select">
+                <option value="">— Selectează departament —</option>
+                {% for dept in departamente %}
+                  <option value="{{ dept }}"
+                    {% if alocare and alocare.departament == dept %}selected{% endif %}>
+                    {{ dept }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary" style="margin-top:6px;">
+                Alocă
+              </button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
+
+        {# ── POATE ── #}
         {% for c in nesiguri %}
+        {% set alocare = alocari_dict.get(c.voluntar.id) %}
         <tr>
           <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
           <td>{{ c.voluntar.departament }}</td>
           <td><span class="badge poate">🤔 Poate</span></td>
           <td>{{ c.ora_sosire if c.ora_sosire else '—' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('eveniment_alocare', id=e.id) }}">
+              <input type="hidden" name="voluntar_id" value="{{ c.voluntar.id }}">
+              <select name="departament" class="ora-select">
+                <option value="">— Selectează departament —</option>
+                {% for dept in departamente %}
+                  <option value="{{ dept }}"
+                    {% if alocare and alocare.departament == dept %}selected{% endif %}>
+                    {{ dept }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary" style="margin-top:6px;">
+                Alocă
+              </button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
+
+        {# ── NU VIN ── (fără alocare) #}
         {% for c in indisponibili %}
         <tr>
           <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
           <td>{{ c.voluntar.departament }}</td>
           <td><span class="badge nu_vin">❌ Nu vine</span></td>
           <td>—</td>
+          <td style="color:#aaa; font-size:13px;">Nu poate fi alocat (nu vine).</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -202,7 +245,7 @@
     <p style="color:#aaa; font-size:14px;">Nicio confirmare primită încă.</p>
     {% endif %}
   </div>
-  {% endif %}
+{% endif %}
 
   <!-- ══════════════════════════════════════
        PONTAJ — doar admin/teamleader

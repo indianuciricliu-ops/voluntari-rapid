@@ -324,29 +324,49 @@ def eveniment_nou():
 @app.route('/evenimente/<int:id>')
 @login_required
 def eveniment_detalii(id):
-    from models import Pontaj, Confirmare
+    from models import Pontaj, Confirmare, Alocare
+    from sqlalchemy import func
+
     e = db.session.get(Eveniment, id)
     if not e:
         flash('Evenimentul nu a fost gasit.', 'danger')
         return redirect(url_for('evenimente'))
+
     confirmari = Confirmare.query.filter_by(eveniment_id=id).all()
     disponibili = [c for c in confirmari if c.raspuns == 'vin']
     indisponibili = [c for c in confirmari if c.raspuns == 'nu_vin']
     nesiguri = [c for c in confirmari if c.raspuns == 'poate']
+
     confirmare_user = Confirmare.query.filter_by(
         eveniment_id=id, voluntar_id=current_user.id
     ).first()
+
     pontaje = Pontaj.query.filter_by(eveniment_id=id).all()
     prezenti = [p for p in pontaje if p.status == 'prezent']
     toti_voluntarii = Voluntar.query.filter_by(activ=True).all()
-    return render_template('eveniment_detalii.html', e=e,
-                           disponibili=disponibili,
-                           indisponibili=indisponibili,
-                           nesiguri=nesiguri,
-                           confirmare_user=confirmare_user,
-                           pontaje=pontaje, prezenti=prezenti,
-                           toti_voluntarii=toti_voluntarii)
 
+    # toate departamentele existente, pentru dropdown
+    departamente = [d[0] for d in db.session.query(
+        Voluntar.departament
+    ).distinct().all() if d[0]]
+
+    # alocarile deja facute pentru acest eveniment
+    alocari = Alocare.query.filter_by(eveniment_id=id).all()
+    alocari_dict = {a.voluntar_id: a for a in alocari}
+
+    return render_template(
+        'eveniment_detalii.html',
+        e=e,
+        disponibili=disponibili,
+        indisponibili=indisponibili,
+        nesiguri=nesiguri,
+        confirmare_user=confirmare_user,
+        pontaje=pontaje,
+        prezenti=prezenti,
+        toti_voluntarii=toti_voluntarii,
+        departamente=departamente,
+        alocari_dict=alocari_dict
+    )
 
 @app.route('/evenimente/<int:id>/confirma', methods=['POST'])
 @login_required
@@ -393,6 +413,38 @@ def eveniment_confirma(id):
         flash('A apărut o eroare la salvarea confirmării.', 'danger')
         return redirect(url_for('eveniment_detalii', id=id))
 
+@app.route('/evenimente/<int:id>/alocare', methods=['POST'])
+@login_required
+@admin_or_teamleader_required
+def eveniment_alocare(id):
+    from models import Alocare
+    from datetime import datetime
+
+    voluntar_id = int(request.form.get('voluntar_id', 0))
+    departament = (request.form.get('departament') or '').strip()
+
+    if not voluntar_id or not departament:
+        flash('Selectează un voluntar și un departament.', 'danger')
+        return redirect(url_for('eveniment_detalii', id=id))
+
+    alocare = Alocare.query.filter_by(
+        eveniment_id=id, voluntar_id=voluntar_id
+    ).first()
+
+    if alocare:
+        alocare.departament = departament
+        alocare.data_alocare = datetime.utcnow()
+    else:
+        alocare = Alocare(
+            voluntar_id=voluntar_id,
+            eveniment_id=id,
+            departament=departament
+        )
+        db.session.add(alocare)
+
+    db.session.commit()
+    flash('Alocarea a fost salvată.', 'success')
+    return redirect(url_for('eveniment_detalii', id=id))
 
 @app.route('/evenimente/<int:id>/editeaza', methods=['GET', 'POST'])
 @login_required

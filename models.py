@@ -59,6 +59,16 @@ class Confirmare(db.Model):
     ora_sosire = db.Column(db.String(50))
     data_raspuns = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Alocare(db.Model):
+    __tablename__ = 'alocari'
+    id = db.Column(db.Integer, primary_key=True)
+    voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
+    eveniment_id = db.Column(db.Integer, db.ForeignKey('evenimente.id'), nullable=False)
+    departament = db.Column(db.String(50))
+    data_alocare = db.Column(db.DateTime, default=datetime.utcnow)
+
+    voluntar = db.relationship('Voluntar', backref='alocari', lazy=True)
+    eveniment = db.relationship('Eveniment', backref='alocari', lazy=True)
 
 class PushSubscription(db.Model):
     __tablename__ = 'push_subscriptions'
