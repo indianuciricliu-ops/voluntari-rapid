@@ -49,12 +49,15 @@
       </div>
       <div class="form-group">
         <label>Departament</label>
-        <select name="departament">
-          <option value="">Selectează departament</option>
-          {% for dept in ['Acces','Logistica','Media','Tribune','Siguranta','Catering','Loje','Facilitati','eSports'] %}
-          <option value="{{ dept }}" {% if v.departament==dept %}selected{% endif %}>{{ dept }}</option>
-          {% endfor %}
-        </select>
+        <select name="departament" class="form-control">
+  <option value="">— Selectează departament —</option>
+  {% for d in departamente %}
+    <option value="{{ d.nume }}"
+            {% if v.departament == d.nume %}selected{% endif %}>
+      {{ d.nume }}
+    </option>
+  {% endfor %}
+</select>
       </div>
       <div class="form-group">
         <label>Rol</label>

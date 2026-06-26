@@ -78,3 +78,21 @@ class PushSubscription(db.Model):
     p256dh = db.Column(db.Text, nullable=False)
     auth = db.Column(db.Text, nullable=False)
     data_creare = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Departament(db.Model):
+    __tablename__ = 'departamente'
+    id = db.Column(db.Integer, primary_key=True)
+    nume = db.Column(db.String(100), unique=True, nullable=False)
+    descriere = db.Column(db.Text)
+
+    teamleaderi = db.relationship('DepartamentTeamleader', backref='departament', lazy=True)
+
+
+class DepartamentTeamleader(db.Model):
+    __tablename__ = 'departament_teamleaderi'
+    id = db.Column(db.Integer, primary_key=True)
+    departament_id = db.Column(db.Integer, db.ForeignKey('departamente.id'), nullable=False)
+    voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
+    data_alocare = db.Column(db.DateTime, default=datetime.utcnow)
+
+    voluntar = db.relationship('Voluntar', backref='departament_teamleaderi', lazy=True)    

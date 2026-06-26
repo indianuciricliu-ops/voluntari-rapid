@@ -52,18 +52,12 @@
       </div>
       <div class="form-group">
         <label>Departament</label>
-        <select name="departament">
-          <option value="">Selectează departament</option>
-          <option>Acces</option>
-          <option>Logistica</option>
-          <option>Media</option>
-          <option>Tribune</option>
-          <option>Siguranta</option>
-          <option>Catering</option>
-          <option>Loje</option>
-          <option>Facilitati</option>
-          <option>eSports</option>
-        </select>
+        <select name="departament" class="form-control">
+  <option value="">— Selectează departament —</option>
+  {% for d in departamente %}
+    <option value="{{ d.nume }}">{{ d.nume }}</option>
+  {% endfor %}
+</select>
       </div>
       <div class="form-group">
         <label>Rol</label>

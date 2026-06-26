@@ -191,22 +191,35 @@ def voluntari():
 @login_required
 @admin_required
 def voluntar_nou():
+    from models import Departament
+
     if request.method == 'POST':
-        from werkzeug.security import generate_password_hash
+        prenume = (request.form.get('prenume') or '').strip()
+        nume = (request.form.get('nume') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        telefon = (request.form.get('telefon') or '').strip()
+        departament = (request.form.get('departament') or '').strip()
+        rol = (request.form.get('rol') or '').strip()
+        parola = (request.form.get('parola') or '').strip()
+
         v = Voluntar(
-            nume=request.form['nume'],
-            prenume=request.form['prenume'],
-            email=request.form['email'],
-            telefon=request.form.get('telefon', ''),
-            departament=request.form.get('departament', ''),
-            rol=request.form.get('rol', 'voluntar'),
-            parola=generate_password_hash(request.form['parola'])
+            prenume=prenume,
+            nume=nume,
+            email=email,
+            telefon=telefon,
+            departament=departament,
+            rol=rol,
+            activ=True
         )
+        v.set_password(parola)
         db.session.add(v)
         db.session.commit()
-        flash(f'Voluntarul {v.prenume} {v.nume} a fost adaugat!', 'success')
+        flash('Voluntarul a fost creat.', 'success')
         return redirect(url_for('voluntari'))
-    return render_template('voluntar_nou.html')
+
+    # GET – pentru formular
+    departamente = Departament.query.order_by(Departament.nume).all()
+    return render_template('voluntar_nou.html', departamente=departamente)
 
 
 @app.route('/voluntari/<int:id>')
@@ -229,18 +242,27 @@ def voluntar_profil(id):
 @login_required
 @admin_required
 def voluntar_editeaza(id):
+    from models import Departament  # import vizibil pentru totă funcția
+
     v = db.session.get(Voluntar, id)
+    if not v:
+        flash('Voluntarul nu a fost gasit.', 'danger')
+        return redirect(url_for('voluntari'))
+
     if request.method == 'POST':
-        v.nume = request.form['nume']
-        v.prenume = request.form['prenume']
-        v.email = request.form['email']
-        v.telefon = request.form.get('telefon', '')
-        v.departament = request.form.get('departament', '')
-        v.rol = request.form.get('rol', 'voluntar')
+        v.prenume = (request.form.get('prenume') or '').strip()
+        v.nume = (request.form.get('nume') or '').strip()
+        v.email = (request.form.get('email') or '').strip()
+        v.telefon = (request.form.get('telefon') or '').strip()
+        v.departament = (request.form.get('departament') or '').strip()
+        v.rol = (request.form.get('rol') or '').strip()
         db.session.commit()
-        flash('Date actualizate cu succes!', 'success')
+        flash('Profilul voluntarului a fost actualizat.', 'success')
         return redirect(url_for('voluntar_profil', id=id))
-    return render_template('voluntar_editeaza.html', v=v)
+
+    # GET – pentru template
+    departamente = Departament.query.order_by(Departament.nume).all()
+    return render_template('voluntar_editeaza.html', v=v, departamente=departamente)
 
 
 @app.route('/voluntari/<int:id>/dezactiveaza')
@@ -633,6 +655,136 @@ def checkin_qr(voluntar_id):
     db.session.commit()
     return render_template('checkin_result.html', v=v, eveniment=eveniment,
                            mesaj=f'Check-in reușit pentru {eveniment.titlu}!', ok=True)
+
+
+@app.route('/departamente')
+@login_required
+def departamente_view():
+    from models import Departament, DepartamentTeamleader
+    from sqlalchemy import or_
+
+    departamente = Departament.query.order_by(Departament.nume).all()
+
+    teamleaders_map = {}
+    for d in departamente:
+        tls = [rel.voluntar for rel in d.teamleaderi if rel.voluntar.activ]
+        teamleaders_map[d.id] = tls
+
+    # toti coordonatorii activi pentru dropdown (ii tratăm ca teamleaderi)
+    teamleaders_all = Voluntar.query.filter(
+        Voluntar.activ == True,
+        Voluntar.rol.in_(['coordonator', 'Coordonator'])  # acceptăm ambele variante dacă exista
+    ).order_by(Voluntar.nume).all()
+
+    return render_template(
+        'departamente.html',
+        departamente=departamente,
+        teamleaders_map=teamleaders_map,
+        teamleaders_all=teamleaders_all
+    )
+
+@app.route('/departamente/nou', methods=['POST'])
+@login_required
+@admin_required
+def departament_nou():
+    from models import Departament
+
+    nume = (request.form.get('nume') or '').strip()
+    descriere = (request.form.get('descriere') or '').strip()
+
+    if not nume:
+        flash('Numele departamentului este obligatoriu.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    existing = Departament.query.filter_by(nume=nume).first()
+    if existing:
+        flash('Există deja un departament cu acest nume.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    d = Departament(nume=nume, descriere=descriere)
+    db.session.add(d)
+    db.session.commit()
+    flash('Departament creat.', 'success')
+    return redirect(url_for('departamente_view'))
+
+@app.route('/departamente/<int:id>/editeaza', methods=['POST'])
+@login_required
+@admin_required
+def departament_editeaza(id):
+    from models import Departament
+
+    d = db.session.get(Departament, id)
+    if not d:
+        flash('Departamentul nu există.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    nume = (request.form.get('nume') or '').strip()
+    descriere = (request.form.get('descriere') or '').strip()
+
+    if not nume:
+        flash('Numele departamentului este obligatoriu.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    d.nume = nume
+    d.descriere = descriere
+    db.session.commit()
+    flash('Departament actualizat.', 'success')
+    return redirect(url_for('departamente_view'))
+
+@app.route('/departamente/<int:id>/teamleader/adauga', methods=['POST'])
+@login_required
+@admin_required
+def departament_teamleader_adauga(id):
+    from models import Departament, DepartamentTeamleader
+
+    voluntar_id = int(request.form.get('voluntar_id', 0))
+
+    if not voluntar_id:
+        flash('Selectează un teamleader.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    d = db.session.get(Departament, id)
+    if not d:
+        flash('Departamentul nu există.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    v = db.session.get(Voluntar, voluntar_id)
+    if not v or v.rol not in ['coordonator', 'Coordonator']:
+        flash('Voluntarul selectat nu are rol de coordonator.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    existing = DepartamentTeamleader.query.filter_by(
+        departament_id=id, voluntar_id=voluntar_id
+    ).first()
+    if existing:
+        flash('Acest teamleader este deja alocat departamentului.', 'info')
+        return redirect(url_for('departamente_view'))
+
+    rel = DepartamentTeamleader(departament_id=id, voluntar_id=voluntar_id)
+    db.session.add(rel)
+    db.session.commit()
+    flash('Teamleader adăugat la departament.', 'success')
+    return redirect(url_for('departamente_view'))
+
+@app.route('/departamente/<int:id>/teamleader/sterge', methods=['POST'])
+@login_required
+@admin_required
+def departament_teamleader_sterge(id):
+    from models import DepartamentTeamleader
+
+    voluntar_id = int(request.form.get('voluntar_id', 0))
+
+    rel = DepartamentTeamleader.query.filter_by(
+        departament_id=id, voluntar_id=voluntar_id
+    ).first()
+    if not rel:
+        flash('Această alocare nu există.', 'danger')
+        return redirect(url_for('departamente_view'))
+
+    db.session.delete(rel)
+    db.session.commit()
+    flash('Teamleader eliminat din departament.', 'info')
+    return redirect(url_for('departamente_view'))
 
 
 # ══════════════════════════════════════
