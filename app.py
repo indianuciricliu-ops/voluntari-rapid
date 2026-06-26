@@ -353,34 +353,45 @@ def eveniment_detalii(id):
 def eveniment_confirma(id):
     from models import Confirmare
     from datetime import datetime
+    import traceback
 
-    raspuns = (request.form.get('raspuns') or '').strip()
-    ora_sosire = (request.form.get('ora_sosire') or '').strip() or None
+    try:
+        raspuns = (request.form.get('raspuns') or '').strip()
+        ora_sosire = (request.form.get('ora_sosire') or '').strip() or None
 
-    if raspuns not in ['vin', 'nu_vin', 'poate']:
-        flash('Răspuns invalid.', 'danger')
+        app.logger.info(f"CONFIRMARE form={dict(request.form)}")
+        app.logger.info(f"CONFIRMARE raspuns={raspuns}, ora_sosire={ora_sosire}")
+
+        if raspuns not in ['vin', 'nu_vin', 'poate']:
+            flash('Răspuns invalid.', 'danger')
+            return redirect(url_for('eveniment_detalii', id=id))
+
+        confirmare = Confirmare.query.filter_by(
+            eveniment_id=id, voluntar_id=current_user.id
+        ).first()
+
+        if confirmare:
+            confirmare.raspuns = raspuns
+            confirmare.ora_sosire = ora_sosire
+            confirmare.data_raspuns = datetime.utcnow()
+        else:
+            confirmare = Confirmare(
+                voluntar_id=current_user.id,
+                eveniment_id=id,
+                raspuns=raspuns,
+                ora_sosire=ora_sosire
+            )
+            db.session.add(confirmare)
+
+        db.session.commit()
+        flash('Răspunsul tău a fost salvat!', 'success')
         return redirect(url_for('eveniment_detalii', id=id))
 
-    confirmare = Confirmare.query.filter_by(
-        eveniment_id=id, voluntar_id=current_user.id
-    ).first()
-
-    if confirmare:
-        confirmare.raspuns = raspuns
-        confirmare.ora_sosire = ora_sosire
-        confirmare.data_raspuns = datetime.utcnow()
-    else:
-        confirmare = Confirmare(
-            voluntar_id=current_user.id,
-            eveniment_id=id,
-            raspuns=raspuns,
-            ora_sosire=ora_sosire
-        )
-        db.session.add(confirmare)
-
-    db.session.commit()
-    flash('Răspunsul tău a fost salvat!', 'success')
-    return redirect(url_for('eveniment_detalii', id=id))
+    except Exception as e:
+        db.session.rollback()
+        app.logger.exception("EROARE LA CONFIRMARE")
+        flash('A apărut o eroare la salvarea confirmării.', 'danger')
+        return redirect(url_for('eveniment_detalii', id=id))
 
 
 @app.route('/evenimente/<int:id>/editeaza', methods=['GET', 'POST'])
@@ -570,6 +581,9 @@ with app.app_context():
         except Exception as e:
             print(f"Migrare info: {e}")
 
+
+import logging
+logging.basicConfig(level=logging.INFO)
 
 if __name__ == '__main__':
     app.run(debug=True)
