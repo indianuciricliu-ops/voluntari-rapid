@@ -387,7 +387,7 @@ def eveniment_confirma(id):
         flash('Răspunsul tău a fost salvat!', 'success')
         return redirect(url_for('eveniment_detalii', id=id))
 
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         app.logger.exception("EROARE LA CONFIRMARE")
         flash('A apărut o eroare la salvarea confirmării.', 'danger')
