@@ -325,8 +325,6 @@ def eveniment_nou():
 @login_required
 def eveniment_detalii(id):
     from models import Pontaj, Confirmare, Alocare
-    from sqlalchemy import func
-
     e = db.session.get(Eveniment, id)
     if not e:
         flash('Evenimentul nu a fost gasit.', 'danger')
@@ -345,14 +343,19 @@ def eveniment_detalii(id):
     prezenti = [p for p in pontaje if p.status == 'prezent']
     toti_voluntarii = Voluntar.query.filter_by(activ=True).all()
 
-    # toate departamentele existente, pentru dropdown
+    # toate departamentele existente, pentru dropdown la alocare (admin/teamleader)
     departamente = [d[0] for d in db.session.query(
         Voluntar.departament
     ).distinct().all() if d[0]]
 
-    # alocarile deja facute pentru acest eveniment
+    # alocarile pentru acest eveniment (pentru tabelul admin/teamleader)
     alocari = Alocare.query.filter_by(eveniment_id=id).all()
     alocari_dict = {a.voluntar_id: a for a in alocari}
+
+    # alocarea userului curent (pentru cardul lui de confirmare)
+    alocare_user = Alocare.query.filter_by(
+        eveniment_id=id, voluntar_id=current_user.id
+    ).first()
 
     return render_template(
         'eveniment_detalii.html',
@@ -361,6 +364,7 @@ def eveniment_detalii(id):
         indisponibili=indisponibili,
         nesiguri=nesiguri,
         confirmare_user=confirmare_user,
+        alocare_user=alocare_user,         # ← NOU
         pontaje=pontaje,
         prezenti=prezenti,
         toti_voluntarii=toti_voluntarii,

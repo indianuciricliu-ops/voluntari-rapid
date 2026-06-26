@@ -110,7 +110,18 @@
     {% else %}
       <p style="font-size:14px; color:#666; margin-bottom:16px;">Nu ai confirmat încă prezența la acest eveniment.</p>
     {% endif %}
+{% if alocare_user %}
+      <p style="font-size:13px; color:#555; margin-bottom:10px;">
+        🧩 Pentru acest meci ești alocat la departamentul
+        <strong>{{ alocare_user.departament or 'Fără departament setat' }}</strong>.
+      </p>
+    {% endif %}
 
+    <form method="POST" action="{{ url_for('eveniment_confirma', id=e.id) }}">
+      <!-- restul formularului cu interval oră sosire + butoane Vin / Nu pot veni / Poate -->
+      ...
+    </form>
+  </div>
     <form method="POST" action="{{ url_for('eveniment_confirma', id=e.id) }}">
       <div style="margin-bottom:14px;">
         <label style="font-size:13px; font-weight:700; color:#555; display:block; margin-bottom:6px;">Interval oră sosire (opțional)</label>
