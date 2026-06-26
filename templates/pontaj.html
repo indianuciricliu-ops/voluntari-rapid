@@ -22,8 +22,8 @@
     .num-prezent { color:#155724; }
     .num-absent { color:#721c24; }
     .num-total { color:#6b0018; }
-    .dept-group { margin-bottom:24px; }
-    .dept-title { font-size:14px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid #e8e6e0; }
+    .section-title { font-size:16px; font-weight:800; margin:18px 0 8px; }
+    .section-sub { font-size:13px; color:#888; margin-bottom:8px; }
     .vol-card { background:#fff; border-radius:14px; padding:16px 18px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 10px rgba(0,0,0,.05); gap:12px; flex-wrap:wrap; transition:all .2s; }
     .vol-card.prezent { border-left:4px solid #28a745; }
     .vol-card.absent { border-left:4px solid #dc3545; }
@@ -42,7 +42,6 @@
     .btn-intarziat { background:#fff3cd; color:#856404; border-color:#fff3cd; }
     .btn-intarziat:hover, .btn-intarziat.activ { background:#ffc107; color:#333; border-color:#ffc107; }
     .checkin-time { font-size:12px; color:#888; margin-top:4px; }
-    .toolbar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
     .btn { padding:10px 18px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
     .btn-primary { background:#6b0018; color:#fff; }
     .btn-success { background:#28a745; color:#fff; }
@@ -59,7 +58,7 @@
   </div>
 </div>
 <div class="main">
-    <input type="hidden" id="eveniment-id" value="{{ e.id }}">
+  <input type="hidden" id="eveniment-id" value="{{ e.id }}">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
       <div class="alert alert-{{ category }}">{{ message }}</div>
@@ -77,19 +76,21 @@
     </form>
   </div>
 
+  {% set total = confirmati|length + poate|length + nevotati_sau_nu_vin|length %}
+
   <div class="stats-row" id="statsRow">
-    <div class="stat-pill"><div class="num num-total" id="statTotal">{{ voluntari|length }}</div><div class="lbl">Total</div></div>
+    <div class="stat-pill"><div class="num num-total" id="statTotal">{{ total }}</div><div class="lbl">Total</div></div>
     <div class="stat-pill"><div class="num num-prezent" id="statPrezent">0</div><div class="lbl">Prezenți</div></div>
     <div class="stat-pill"><div class="num num-absent" id="statAbsent">0</div><div class="lbl">Absenți</div></div>
     <div class="stat-pill"><div class="num num-intarziat" id="statIntarziat">0</div><div class="lbl">Întârziați</div></div>
-    <div class="stat-pill"><div class="num" style="color:#aaa;" id="statNemarcat">{{ voluntari|length }}</div><div class="lbl">Nemarcați</div></div>
+    <div class="stat-pill"><div class="num" style="color:#aaa;" id="statNemarcat">{{ total }}</div><div class="lbl">Nemarcați</div></div>
   </div>
 
-  {% set departamente = voluntari | map(attribute='departament') | unique | list %}
-  {% for dept in departamente %}
-  <div class="dept-group">
-    <div class="dept-title">{{ dept or 'Fără departament' }}</div>
-    {% for v in voluntari if v.departament == dept %}
+  <!-- CONFIRMAȚI (VIN) -->
+  <h3 class="section-title">✅ Voluntari confirmați (Vin)</h3>
+  <p class="section-sub">Cei care au răspuns că vin la meci.</p>
+  {% if confirmati %}
+    {% for v in confirmati %}
     {% set p = pontaje.get(v.id) %}
     {% set status_curent = p.status if p else 'nemarcat' %}
     <div class="vol-card {{ status_curent }}" id="card-{{ v.id }}">
@@ -97,15 +98,15 @@
         <div class="avatar">{{ v.prenume[0] }}{{ v.nume[0] }}</div>
         <div>
           <div class="vol-name">{{ v.prenume }} {{ v.nume }}</div>
-          <div class="vol-meta">{{ v.email }}</div>
+          <div class="vol-meta">{{ v.departament or 'Fără departament' }} · {{ v.email }}</div>
           <div class="checkin-time" id="time-{{ v.id }}">
             {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
           </div>
         </div>
       </div>
       <div class="btn-group">
-        <input type="hidden" name="prezenti" value="{{ v.id }}" form="formBulk"
-               id="inp-{{ v.id }}" {% if status_curent == 'prezent' %}checked{% endif %}>
+        <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
+               {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
         <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
                 onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
         <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
@@ -115,8 +116,77 @@
       </div>
     </div>
     {% endfor %}
-  </div>
-  {% endfor %}
+  {% else %}
+    <p style="color:#aaa; font-size:14px;">Niciun voluntar confirmat încă.</p>
+  {% endif %}
+
+  <!-- POATE -->
+  <h3 class="section-title">🤔 Voluntari cu răspuns „Poate”</h3>
+  <p class="section-sub">Voluntari nehotărâți, dar pe care îi poți marca prezenți dacă apar.</p>
+  {% if poate %}
+    {% for v in poate %}
+    {% set p = pontaje.get(v.id) %}
+    {% set status_curent = p.status if p else 'nemarcat' %}
+    <div class="vol-card {{ status_curent }}" id="card-{{ v.id }}">
+      <div class="vol-info">
+        <div class="avatar">{{ v.prenume[0] }}{{ v.nume[0] }}</div>
+        <div>
+          <div class="vol-name">{{ v.prenume }} {{ v.nume }}</div>
+          <div class="vol-meta">{{ v.departament or 'Fără departament' }} · {{ v.email }}</div>
+          <div class="checkin-time" id="time-{{ v.id }}">
+            {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
+               {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
+        <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
+        <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'intarziat', this)">⏰ Întârziat</button>
+        <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'absent', this)">❌ Absent</button>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#aaa; font-size:14px;">Niciun voluntar cu răspuns „Poate”.</p>
+  {% endif %}
+
+  <!-- NEVOTAȚI + NU VIN -->
+  <h3 class="section-title">⚪ Nevotați și cei care au spus „Nu vin”</h3>
+  <p class="section-sub">Dacă apar totuși la stadion, îi poți marca „prezent”.</p>
+  {% if nevotati_sau_nu_vin %}
+    {% for v in nevotati_sau_nu_vin %}
+    {% set p = pontaje.get(v.id) %}
+    {% set status_curent = p.status if p else 'nemarcat' %}
+    <div class="vol-card {{ status_curent }}" id="card-{{ v.id }}">
+      <div class="vol-info">
+        <div class="avatar">{{ v.prenume[0] }}{{ v.nume[0] }}</div>
+        <div>
+          <div class="vol-name">{{ v.prenume }} {{ v.nume }}</div>
+          <div class="vol-meta">{{ v.departament or 'Fără departament' }} · {{ v.email }}</div>
+          <div class="checkin-time" id="time-{{ v.id }}">
+            {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
+               {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
+        <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
+        <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'intarziat', this)">⏰ Întârziat</button>
+        <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
+                onclick="marcheaza({{ v.id }}, 'absent', this)">❌ Absent</button>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#aaa; font-size:14px;">Toți voluntarii au dat un răspuns (Vin / Nu / Poate).</p>
+  {% endif %}
 </div>
 
 <script>
@@ -148,6 +218,7 @@
     var inp = document.getElementById('inp-' + voluntarId);
     if (status === 'prezent') {
       inp.setAttribute('name', 'prezenti');
+      inp.value = voluntarId;
       var ora = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
       document.getElementById('time-' + voluntarId).innerHTML = '✅ Check-in: ' + ora;
     } else {
@@ -166,3 +237,5 @@
 
   actualizeazaStats();
 </script>
+</body>
+</html>

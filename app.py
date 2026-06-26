@@ -491,18 +491,52 @@ from models import Pontaj, Confirmare
 @login_required
 @admin_or_teamleader_required
 def pontaj(eveniment_id):
+    from models import Confirmare
     e = db.session.get(Eveniment, eveniment_id)
     if not e:
         flash('Evenimentul nu a fost gasit.', 'danger')
         return redirect(url_for('evenimente'))
-    voluntari_activi = Voluntar.query.filter_by(activ=True).order_by(Voluntar.departament, Voluntar.nume).all()
-    pontaje_existente = {p.voluntar_id: p for p in Pontaj.query.filter_by(eveniment_id=eveniment_id).all()}
-    pontaje_json = {p.voluntar_id: p.status for p in Pontaj.query.filter_by(eveniment_id=eveniment_id).all()}
-    return render_template('pontaj.html', e=e,
-                           voluntari=voluntari_activi,
-                           pontaje=pontaje_existente,
-                           pontaje_json=pontaje_json)
 
+    # toți voluntarii activi
+    voluntari_activi = Voluntar.query.filter_by(activ=True).order_by(
+        Voluntar.departament, Voluntar.nume
+    ).all()
+
+    # pontaje existente
+    pontaje_existente = {
+        p.voluntar_id: p for p in Pontaj.query.filter_by(eveniment_id=eveniment_id).all()
+    }
+    pontaje_json = {
+        p.voluntar_id: p.status for p in Pontaj.query.filter_by(eveniment_id=eveniment_id).all()
+    }
+
+    # confirmări pentru acest eveniment
+    confirmari = Confirmare.query.filter_by(eveniment_id=eveniment_id).all()
+    raspuns_map = {c.voluntar_id: c.raspuns for c in confirmari}
+
+    # grupare voluntari
+    confirmati = []
+    poate = []
+    nevotati_sau_nu_vin = []
+
+    for v in voluntari_activi:
+        r = raspuns_map.get(v.id)
+        if r == 'vin':
+            confirmati.append(v)
+        elif r == 'poate':
+            poate.append(v)
+        else:
+            nevotati_sau_nu_vin.append(v)
+
+    return render_template(
+        'pontaj.html',
+        e=e,
+        confirmati=confirmati,
+        poate=poate,
+        nevotati_sau_nu_vin=nevotati_sau_nu_vin,
+        pontaje=pontaje_existente,
+        pontaje_json=pontaje_json
+    )
 
 @app.route('/pontaj/<int:eveniment_id>/marcheaza', methods=['POST'])
 @login_required
