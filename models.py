@@ -56,7 +56,7 @@ class Confirmare(db.Model):
     voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
     eveniment_id = db.Column(db.Integer, db.ForeignKey('evenimente.id'), nullable=False)
     raspuns = db.Column(db.String(20))
-    ora_sosire = db.Column(db.String(20))
+    ora_sosire = db.Column(db.String(50))
     data_raspuns = db.Column(db.DateTime, default=datetime.utcnow)
 
 
