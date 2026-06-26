@@ -353,11 +353,18 @@ def eveniment_detalii(id):
 def eveniment_confirma(id):
     from models import Confirmare
     from datetime import datetime
-    raspuns = request.form.get('raspuns')
-    ora_sosire = request.form.get('ora_sosire', '')
+
+    raspuns = (request.form.get('raspuns') or '').strip()
+    ora_sosire = (request.form.get('ora_sosire') or '').strip() or None
+
+    if raspuns not in ['vin', 'nu_vin', 'poate']:
+        flash('Răspuns invalid.', 'danger')
+        return redirect(url_for('eveniment_detalii', id=id))
+
     confirmare = Confirmare.query.filter_by(
         eveniment_id=id, voluntar_id=current_user.id
     ).first()
+
     if confirmare:
         confirmare.raspuns = raspuns
         confirmare.ora_sosire = ora_sosire
@@ -370,8 +377,9 @@ def eveniment_confirma(id):
             ora_sosire=ora_sosire
         )
         db.session.add(confirmare)
+
     db.session.commit()
-    flash('Raspunsul tau a fost salvat!', 'success')
+    flash('Răspunsul tău a fost salvat!', 'success')
     return redirect(url_for('eveniment_detalii', id=id))
 
 
