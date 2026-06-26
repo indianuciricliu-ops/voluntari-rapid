@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Departamente & Teamleaderi</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
+    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .topbar h1 { font-size:18px; font-weight:800; }
+    .nav-links { display:flex; gap:16px; }
+    .nav-links a { color:#ffcdd2; font-size:14px; text-decoration:none; font-weight:600; }
+    .main { padding:28px; max-width:900px; }
+    .card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); margin-bottom:18px; }
+    .card h3 { font-size:16px; font-weight:800; margin-bottom:12px; }
+    .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
+    .alert-success { background:#d4edda; color:#155724; }
+    .alert-danger { background:#f8d7da; color:#721c24; }
+    .alert-info { background:#d1ecf1; color:#0c5460; }
+    .dept-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .dept-name { font-size:15px; font-weight:800; }
+    .dept-desc { font-size:13px; color:#777; margin-top:4px; }
+    .teamleaders-list { font-size:13px; margin-top:8px; }
+    .badge-tl { display:inline-block; background:#f0eef0; border-radius:999px; padding:4px 10px; margin:2px 4px 2px 0; font-size:12px; }
+    .form-row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .input-text { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; flex:1; }
+    .textarea { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; width:100%; min-height:60px; resize:vertical; }
+    .select { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; min-width:180px; }
+    .btn { padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#6b0018; color:#fff; }
+    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; }
+    .btn-danger { background:#dc3545; color:#fff; }
+    .section-title { font-size:16px; font-weight:800; margin-bottom:10px; }
+    .section-sub { font-size:13px; color:#777; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔴⚪ Departamente & Teamleaderi</h1>
+  <div class="nav-links">
+    <a href="{{ url_for('index') }}">Dashboard</a>
+    <a href="{{ url_for('evenimente') }}">Evenimente</a>
+    <a href="{{ url_for('departamente_view') }}">Departamente</a>
+    <a href="{{ url_for('voluntari') }}">Voluntari</a>
+  </div>
+</div>
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if current_user.rol == 'admin' %}
+  <div class="card">
+    <h3>➕ Creează departament nou</h3>
+    <p class="section-sub">Adminul poate adăuga departamente și descrieri. Teamleaderii și voluntarii doar le vizualizează.</p>
+    <form method="POST" action="{{ url_for('departament_nou') }}">
+      <div class="form-row">
+        <input type="text" name="nume" class="input-text" placeholder="Nume departament (ex: Coregrafie)" required>
+        <button type="submit" class="btn btn-primary">Creează</button>
+      </div>
+      <textarea name="descriere" class="textarea" placeholder="Descriere (opțional)"></textarea>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3>📂 Departamente existente</h3>
+    {% if departamente %}
+      {% for d in departamente %}
+      <div style="border-top:1px solid #f0eef0; padding-top:12px; margin-top:10px;">
+        <div class="dept-header">
+          <div>
+            {% if current_user.rol == 'admin' %}
+            <form method="POST" action="{{ url_for('departament_editeaza', id=d.id) }}">
+              <input type="text" name="nume" class="input-text" value="{{ d.nume }}" style="max-width:260px;">
+              <button type="submit" class="btn btn-outline" style="margin-top:4px;">✏️ Salvează numele</button>
+              <textarea name="descriere" class="textarea" placeholder="Descriere departament">{{ d.descriere or '' }}</textarea>
+            </form>
+            {% else %}
+            <div class="dept-name">{{ d.nume }}</div>
+            {% if d.descriere %}
+              <div class="dept-desc">{{ d.descriere }}</div>
+            {% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="teamleaders-list">
+          <strong>Teamleaderi alocați:</strong>
+          {% set tls = teamleaders_map.get(d.id) %}
+          {% if tls %}
+            {% for tl in tls %}
+              <span class="badge-tl">{{ tl.prenume }} {{ tl.nume }}</span>
+              {% if current_user.rol == 'admin' %}
+              <form method="POST" action="{{ url_for('departament_teamleader_sterge', id=d.id) }}" style="display:inline;">
+                <input type="hidden" name="voluntar_id" value="{{ tl.id }}">
+                <button type="submit" class="btn btn-danger" style="padding:2px 8px; font-size:11px; margin-left:4px;">✕</button>
+              </form>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <span style="color:#aaa; font-size:13px;">Niciun teamleader alocat încă.</span>
+          {% endif %}
+        </div>
+
+        {% if current_user.rol == 'admin' %}
+        <form method="POST" action="{{ url_for('departament_teamleader_adauga', id=d.id) }}" style="margin-top:10px;">
+          <div class="form-row">
+            <select name="voluntar_id" class="select" required>
+              <option value="">— Selectează teamleader —</option>
+              {% for tl in teamleaders_all %}
+                <option value="{{ tl.id }}">{{ tl.prenume }} {{ tl.nume }} ({{ tl.departament or 'fără departament' }})</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">➕ Adaugă teamleader</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:#aaa; font-size:14px;">Nu există încă departamente definite.</p>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
