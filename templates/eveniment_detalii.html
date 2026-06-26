@@ -16,7 +16,7 @@
     .hero-card h2 { font-size:28px; margin-bottom:10px; }
     .hero-meta { display:flex; gap:20px; flex-wrap:wrap; font-size:14px; opacity:.9; }
     .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
-    .card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+    .card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); margin-bottom:18px; }
     .card h3 { font-size:16px; font-weight:800; margin-bottom:14px; }
     .stat { font-size:32px; font-weight:800; }
     .stat-label { color:#888; font-size:13px; margin-top:4px; }
@@ -24,8 +24,9 @@
     .ok { background:#d4edda; color:#155724; }
     .absent { background:#f8d7da; color:#721c24; }
     .intarziat { background:#fff3cd; color:#856404; }
-    .disponibil { background:#d4edda; color:#155724; }
-    .indisponibil { background:#f8d7da; color:#721c24; }
+    .vin { background:#d4edda; color:#155724; }
+    .nu_vin { background:#f8d7da; color:#721c24; }
+    .poate { background:#fff3cd; color:#856404; }
     table { width:100%; border-collapse:collapse; }
     th { padding:10px 12px; text-align:left; font-size:13px; font-weight:700; color:#888; border-bottom:2px solid #f0eef0; }
     td { padding:10px 12px; border-bottom:1px solid #f7f6f2; font-size:14px; }
@@ -34,7 +35,22 @@
     .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; }
     .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
     .alert-success { background:#d4edda; color:#155724; }
-    @media(max-width:600px) { .grid2 { grid-template-columns:1fr; } }
+    .alert-danger { background:#f8d7da; color:#721c24; }
+    .alert-info { background:#d1ecf1; color:#0c5460; }
+
+    /* ── Confirmare box ── */
+    .confirmare-box { border-radius:16px; padding:22px; margin-bottom:18px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+    .confirmare-box.neconfirmat { background:#fff; border:2px dashed #e0d0d4; }
+    .confirmare-box.confirmat-vin { background:#f0fdf4; border:2px solid #4caf50; }
+    .confirmare-box.confirmat-nu_vin { background:#fff5f5; border:2px solid #ef5350; }
+    .confirmare-box.confirmat-poate { background:#fffde7; border:2px solid #ffc107; }
+    .confirmare-box h3 { font-size:16px; font-weight:800; margin-bottom:14px; }
+    .raspuns-btns { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .btn-vin { background:#4caf50; color:#fff; padding:10px 20px; border-radius:10px; font-size:14px; font-weight:700; border:none; cursor:pointer; }
+    .btn-nu_vin { background:#ef5350; color:#fff; padding:10px 20px; border-radius:10px; font-size:14px; font-weight:700; border:none; cursor:pointer; }
+    .btn-poate { background:#ffc107; color:#333; padding:10px 20px; border-radius:10px; font-size:14px; font-weight:700; border:none; cursor:pointer; }
+    .ora-select { padding:9px 14px; border-radius:10px; border:1.5px solid #ddd; font-size:14px; font-weight:600; background:#fff; cursor:pointer; width:100%; max-width:220px; margin-bottom:14px; }
+    .status-confirmat { font-size:15px; font-weight:700; margin-bottom:10px; }
   </style>
 </head>
 <body>
@@ -42,7 +58,9 @@
   <h1>🔴⚪ Volunteer Manager Rapid 1923</h1>
   <div class="nav-links">
     <a href="{{ url_for('evenimente') }}">← Evenimente</a>
+    {% if current_user.rol == 'admin' %}
     <a href="{{ url_for('eveniment_editeaza', id=e.id) }}">Editează</a>
+    {% endif %}
     <a href="{{ url_for('logout') }}">Deconectare</a>
   </div>
 </div>
@@ -64,6 +82,66 @@
     {% if e.descriere %}<p style="margin-top:12px; opacity:.9; font-size:14px;">{{ e.descriere }}</p>{% endif %}
   </div>
 
+  <!-- ══════════════════════════════════════
+       CONFIRMARE PREZENȚĂ — vizibil tuturor
+       ══════════════════════════════════════ -->
+  {% set cls = 'neconfirmat' %}
+  {% if confirmare_user %}
+    {% if confirmare_user.raspuns == 'vin' %}{% set cls = 'confirmat-vin' %}
+    {% elif confirmare_user.raspuns == 'nu_vin' %}{% set cls = 'confirmat-nu_vin' %}
+    {% elif confirmare_user.raspuns == 'poate' %}{% set cls = 'confirmat-poate' %}
+    {% endif %}
+  {% endif %}
+
+  <div class="confirmare-box {{ cls }}">
+    <h3>📬 Confirmarea ta pentru acest eveniment</h3>
+
+    {% if confirmare_user %}
+      <div class="status-confirmat">
+        {% if confirmare_user.raspuns == 'vin' %}✅ Ai confirmat că vii
+        {% elif confirmare_user.raspuns == 'nu_vin' %}❌ Ai confirmat că nu poți veni
+        {% elif confirmare_user.raspuns == 'poate' %}🤔 Ai răspuns „Poate"
+        {% endif %}
+        {% if confirmare_user.ora_sosire %}
+          · 🕐 Interval sosire: <strong>{{ confirmare_user.ora_sosire }}</strong>
+        {% endif %}
+      </div>
+      <p style="font-size:13px; color:#888; margin-bottom:14px;">Poți modifica răspunsul oricând.</p>
+    {% else %}
+      <p style="font-size:14px; color:#666; margin-bottom:16px;">Nu ai confirmat încă prezența la acest eveniment.</p>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('eveniment_confirma', id=e.id) }}">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:13px; font-weight:700; color:#555; display:block; margin-bottom:6px;">Interval oră sosire (opțional)</label>
+        <select name="ora_sosire" class="ora-select">
+          <option value="">— Selectează interval —</option>
+          {% set ore = [
+            '06:00-06:30','06:30-07:00','07:00-07:30','07:30-08:00',
+            '08:00-08:30','08:30-09:00','09:00-09:30','09:30-10:00',
+            '10:00-10:30','10:30-11:00','11:00-11:30','11:30-12:00',
+            '12:00-12:30','12:30-13:00','13:00-13:30','13:30-14:00',
+            '14:00-14:30','14:30-15:00','15:00-15:30','15:30-16:00',
+            '16:00-16:30','16:30-17:00','17:00-17:30','17:30-18:00',
+            '18:00-18:30','18:30-19:00','19:00-19:30','19:30-20:00',
+            '20:00-20:30','20:30-21:00','21:00-21:30','21:30-22:00'
+          ] %}
+          {% for interval in ore %}
+            <option value="{{ interval }}"
+              {% if confirmare_user and confirmare_user.ora_sosire == interval %}selected{% endif %}>
+              {{ interval }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="raspuns-btns">
+        <button type="submit" name="raspuns" value="vin" class="btn-vin">✅ Vin</button>
+        <button type="submit" name="raspuns" value="nu_vin" class="btn-nu_vin">❌ Nu pot veni</button>
+        <button type="submit" name="raspuns" value="poate" class="btn-poate">🤔 Poate</button>
+      </div>
+    </form>
+  </div>
+
   <div class="grid2">
     <div class="card">
       <h3>📊 Rezumat pontaj</h3>
@@ -73,28 +151,49 @@
     <div class="card">
       <h3>✅ Confirmări primite</h3>
       <div class="stat">{{ disponibili|length }}</div>
-      <div class="stat-label">disponibili · {{ indisponibili|length }} indisponibili</div>
+      <div class="stat-label">vin · {{ indisponibili|length }} nu pot · {{ nesiguri|length }} poate</div>
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:18px;">
+  <!-- ══════════════════════════════════════
+       TABEL CONFIRMĂRI — doar admin/teamleader
+       ══════════════════════════════════════ -->
+  {% if current_user.rol in ['admin', 'teamleader'] %}
+  <div class="card">
     <h3>👥 Confirmări voluntari</h3>
-    {% if disponibili or indisponibili %}
+    {% if disponibili or indisponibili or nesiguri %}
     <table>
-      <thead><tr><th>Voluntar</th><th>Departament</th><th>Răspuns</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Voluntar</th>
+          <th>Departament</th>
+          <th>Răspuns</th>
+          <th>Interval sosire</th>
+        </tr>
+      </thead>
       <tbody>
         {% for c in disponibili %}
         <tr>
           <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
           <td>{{ c.voluntar.departament }}</td>
-          <td><span class="badge disponibil">Disponibil</span></td>
+          <td><span class="badge vin">✅ Vine</span></td>
+          <td>{{ c.ora_sosire if c.ora_sosire else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% for c in nesiguri %}
+        <tr>
+          <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
+          <td>{{ c.voluntar.departament }}</td>
+          <td><span class="badge poate">🤔 Poate</span></td>
+          <td>{{ c.ora_sosire if c.ora_sosire else '—' }}</td>
         </tr>
         {% endfor %}
         {% for c in indisponibili %}
         <tr>
           <td>{{ c.voluntar.prenume }} {{ c.voluntar.nume }}</td>
           <td>{{ c.voluntar.departament }}</td>
-          <td><span class="badge indisponibil">Indisponibil</span></td>
+          <td><span class="badge nu_vin">❌ Nu vine</span></td>
+          <td>—</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -103,15 +202,20 @@
     <p style="color:#aaa; font-size:14px;">Nicio confirmare primită încă.</p>
     {% endif %}
   </div>
+  {% endif %}
 
+  <!-- ══════════════════════════════════════
+       PONTAJ — doar admin/teamleader
+       ══════════════════════════════════════ -->
+  {% if current_user.rol in ['admin', 'teamleader'] %}
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-  <h3 style="margin:0;">📋 Pontaj meci</h3>
-  <a href="{{ url_for('pontaj', eveniment_id=e.id) }}"
-     style="background:#6b0018; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
-    ▶ Deschide pontaj live
-  </a>
-</div>
+      <h3 style="margin:0;">📋 Pontaj meci</h3>
+      <a href="{{ url_for('pontaj', eveniment_id=e.id) }}"
+         style="background:#6b0018; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
+        ▶ Deschide pontaj live
+      </a>
+    </div>
     {% if pontaje %}
     <table>
       <thead><tr><th>Voluntar</th><th>Departament</th><th>Status</th><th>Check-in</th></tr></thead>
@@ -130,6 +234,8 @@
     <p style="color:#aaa; font-size:14px;">Pontajul nu a început încă.</p>
     {% endif %}
   </div>
+  {% endif %}
+
 </div>
 </body>
 </html>
