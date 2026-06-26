@@ -564,26 +564,23 @@ def service_worker():
     }
 
 
-# ══════════════════════════════════════
-# INITIALIZARE DB + MIGRARE AUTOMATA
-# ══════════════════════════════════════
+from sqlalchemy import text
+
 with app.app_context():
     db.create_all()
-    from sqlalchemy import text, inspect
-    with db.engine.connect() as conn:
-        try:
-            inspector = inspect(db.engine)
-            cols = [c['name'] for c in inspector.get_columns('confirmari')]
-            if 'ora_sosire' not in cols:
-                conn.execute(text('ALTER TABLE confirmari ADD COLUMN ora_sosire VARCHAR(10)'))
+
+    # Migrare automata pentru ora_sosire pe Render (PostgreSQL)
+    engine = db.engine
+    try:
+        if engine.url.drivername.startswith('postgres'):
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE confirmari ALTER COLUMN ora_sosire TYPE VARCHAR(50)"))
                 conn.commit()
-                print("✅ Migrare automata: ora_sosire adaugata")
-        except Exception as e:
-            print(f"Migrare info: {e}")
-
-
-import logging
-logging.basicConfig(level=logging.INFO)
+                print("✅ Migrare Render: ora_sosire extinsa la VARCHAR(50)")
+        else:
+            print("Migrare Render: nu este PostgreSQL, sar peste ALTER COLUMN.")
+    except Exception as e:
+        print(f"Migrare Render ora_sosire: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True)
