@@ -1,67 +1,111 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alocări — Volunteer Manager Rapid</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background:#f7f6f2; color:#1f1720; font-family:Inter,sans-serif; }
+    .topbar { background: linear-gradient(90deg,#6b0018,#8e1231); padding: 12px 18px; }
+    .topbar .navbar-brand { color:#fff !important; font-size:18px; font-weight:800; }
+    .topbar .nav-link { color:#ffcdd2 !important; font-size:14px; font-weight:600; }
+    .topbar .nav-link:hover { color:#fff !important; }
+    .main { padding:28px; max-width:1200px; margin:0 auto; }
+    .page-title { font-size:28px; font-weight:800; margin-bottom:6px; }
+    .page-sub { color:#666; margin-bottom:24px; }
+    .accordion-button { font-weight:700; }
+    .event-box { background:#fff; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,.06); overflow:hidden; }
+    .card { border:0; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
 
-{% block content %}
-<div class="container mt-4">
-  <h2 class="mb-4">Alocări</h2>
+<nav class="navbar navbar-expand-lg navbar-dark topbar">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ url_for('index') }}">🔴⚪ Volunteer Manager Rapid 1923</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Deschide meniul">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-lg-2">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('voluntari') }}">Voluntari</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('evenimente') }}">Evenimente</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('departamente_view') }}">Departamente</a></li>
+        <li class="nav-item"><a class="nav-link active" href="{{ url_for('alocari') }}">Alocări</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Deconectare</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
 
+<div class="main">
+  <div class="page-title">Alocări</div>
+  <div class="page-sub">Evenimente, departamente, teamleader și voluntari.</div>
+
+  {% if alocari_per_eveniment %}
   <div class="accordion" id="accordionAlocari">
     {% for item in alocari_per_eveniment %}
-    <div class="accordion-item mb-3">
+    <div class="accordion-item mb-3 border-0 rounded-4 overflow-hidden">
       <h2 class="accordion-header" id="heading{{ item.event.id }}">
-        <button class="accordion-button collapsed" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapse{{ item.event.id }}"
-                aria-expanded="false"
-                aria-controls="collapse{{ item.event.id }}">
-          {{ item.event.nume }} - {{ item.event.data }}
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ item.event.id }}" aria-expanded="false" aria-controls="collapse{{ item.event.id }}">
+          {{ item.event.titlu }}{% if item.event.data %} — {{ item.event.data.strftime('%d.%m.%Y %H:%M') }}{% endif %}
         </button>
       </h2>
 
-      <div id="collapse{{ item.event.id }}" class="accordion-collapse collapse"
-           aria-labelledby="heading{{ item.event.id }}"
-           data-bs-parent="#accordionAlocari">
-        <div class="accordion-body">
+      <div id="collapse{{ item.event.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ item.event.id }}" data-bs-parent="#accordionAlocari">
+        <div class="accordion-body bg-white">
 
-          <div class="mb-3 text-end">
-            <a href="{{ url_for('export_alocari_pdf', event_id=item.event.id) }}"
-               class="btn btn-sm btn-danger">
-              Export PDF
-            </a>
+          <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('export_alocari_pdf', event_id=item.event.id) }}" class="btn btn-sm btn-danger">Export PDF</a>
           </div>
 
-          {% for dept_name, dept in item.departamente.items() %}
-          <div class="card mb-3">
-            <div class="card-header">
-              <strong>{{ dept_name }}</strong>
-            </div>
-            <div class="card-body">
-              <p class="mb-2">
-                <strong>Teamleader:</strong>
-                {% if dept.teamleader %}
-                  {{ dept.teamleader.nume }} {{ dept.teamleader.prenume }}
-                {% else %}
-                  Nedefinit
-                {% endif %}
-              </p>
+          {% if item.departamente %}
+            {% for dept_name, dept in item.departamente.items() %}
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <strong>{{ dept_name }}</strong>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <span class="fw-semibold">Teamleader:</span>
+                  {% if dept.teamleader %}
+                    {{ dept.teamleader.prenume }} {{ dept.teamleader.nume }}
+                  {% else %}
+                    <span class="text-muted">Nedefinit</span>
+                  {% endif %}
+                </div>
 
-              <p class="mb-1"><strong>Voluntari:</strong></p>
-              {% if dept.voluntari %}
-                <ul class="mb-0">
-                  {% for v in dept.voluntari %}
-                    <li>{{ v.nume }} {{ v.prenume }}</li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p class="mb-0">Niciun voluntar alocat.</p>
-              {% endif %}
+                <div>
+                  <div class="fw-semibold mb-2">Voluntari:</div>
+                  {% if dept.voluntari %}
+                    <ul class="mb-0">
+                      {% for v in dept.voluntari %}
+                        <li>{{ v.prenume }} {{ v.nume }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <div class="text-muted">Niciun voluntar alocat.</div>
+                  {% endif %}
+                </div>
+              </div>
             </div>
-          </div>
-          {% endfor %}
+            {% endfor %}
+          {% else %}
+            <div class="text-muted">Nu există alocări pentru acest eveniment.</div>
+          {% endif %}
 
         </div>
       </div>
     </div>
     {% endfor %}
   </div>
+  {% else %}
+    <div class="alert alert-info">Nu există alocări încă.</div>
+  {% endif %}
 </div>
-{% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
