@@ -554,14 +554,18 @@ def eveniment_alocare(id):
         eveniment_id=id, voluntar_id=voluntar_id
     ).first()
 
+    este_teamleader = request.form.get('este_teamleader') == 'on'
+
     if alocare:
         alocare.departament = departament
+        alocare.este_teamleader = este_teamleader
         alocare.data_alocare = datetime.utcnow()
     else:
         alocare = Alocare(
             voluntar_id=voluntar_id,
             eveniment_id=id,
-            departament=departament
+            departament=departament,
+            este_teamleader=este_teamleader
         )
         db.session.add(alocare)
 
@@ -625,11 +629,7 @@ def alocari():
         departamente = {}
 
         for al in alocari_event:
-            if hasattr(al.departament, 'nume'):
-                dept_name = al.departament.nume
-            else:
-                dept_name = al.departament or 'Fără departament'
-
+            dept_name = al.departament or 'Fără departament'
             if dept_name not in departamente:
                 departamente[dept_name] = {
                     'teamleader': None,
@@ -657,11 +657,7 @@ def export_alocari_pdf(event_id):
 
     departamente = {}
     for al in alocari_event:
-        if hasattr(al.departament, 'nume'):
-            dept_name = al.departament.nume
-        else:
-            dept_name = al.departament or 'Fără departament'
-
+        dept_name = al.departament or 'Fără departament'
         if dept_name not in departamente:
             departamente[dept_name] = {'teamleader': None, 'voluntari': []}
 
@@ -1088,8 +1084,12 @@ with app.app_context():
                     ALTER TABLE voluntari
                     ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT TRUE
                 """))
+                conn.execute(text("""
+                    ALTER TABLE alocari
+                    ADD COLUMN IF NOT EXISTS este_teamleader BOOLEAN DEFAULT FALSE
+                """))
                 conn.commit()
-                print("✅ Migrare Render: ora_sosire extinsa la VARCHAR(50), must_change_password adăugată")
+                print("✅ Migrare Render: ora_sosire extinsa la VARCHAR(50), must_change_password și este_teamleader adăugate")
         else:
             print("Migrare Render: nu este PostgreSQL, sar peste ALTER COLUMN.")
             with engine.connect() as conn:
@@ -1097,10 +1097,14 @@ with app.app_context():
                     ALTER TABLE voluntari
                     ADD COLUMN must_change_password BOOLEAN DEFAULT 1
                 """))
+                conn.execute(text("""
+                    ALTER TABLE alocari
+                    ADD COLUMN este_teamleader BOOLEAN DEFAULT 0
+                """))
                 conn.commit()
-                print("✅ Migrare local: must_change_password adăugată")
+                print("✅ Migrare local: must_change_password și este_teamleader adăugate")
     except Exception as e:
-        print(f"Migrare Render/local must_change_password: {e}")
+        print(f"Migrare Render/local: {e}")
 
 
 if __name__ == '__main__':
