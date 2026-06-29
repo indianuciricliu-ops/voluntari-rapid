@@ -1,10 +1,14 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
-from models import db, Voluntar
+from models import db, Voluntar, Eveniment, Alocare
 from werkzeug.security import generate_password_hash, check_password_hash
 from pywebpush import webpush, WebPushException
 from functools import wraps
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
 import os
 
 load_dotenv()
@@ -19,9 +23,11 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Trebuie sa te autentifici pentru a accesa aceasta pagina.'
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Voluntar, int(user_id))
+
 
 # ══════════════════════════════════════
 # DECORATORI ROLURI
@@ -35,6 +41,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
 def admin_or_teamleader_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -43,6 +50,7 @@ def admin_or_teamleader_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated
+
 
 # ══════════════════════════════════════
 # DASHBOARD
@@ -100,12 +108,14 @@ def index():
         acum=acum
     )
 
+
 # ══════════════════════════════════════
 # API / PUSH NOTIFICATIONS
 # ══════════════════════════════════════
 @app.route('/api/vapid-public-key')
 def vapid_public_key():
     return jsonify({'publicKey': os.environ.get('VAPID_PUBLIC_KEY')})
+
 
 @app.route('/api/subscribe', methods=['POST'])
 @login_required
@@ -124,11 +134,8 @@ def subscribe():
         db.session.commit()
     return jsonify({'status': 'ok'})
 
+
 def trimite_push_reminder_eveniment(eveniment_id):
-    """
-    Trimite notificare PWA de reminder pentru evenimentul dat
-    DOAR către voluntarii activi care NU au nicio confirmare la acest eveniment.
-    """
     from models import Eveniment, Confirmare, PushSubscription
     import json
 
@@ -174,6 +181,7 @@ def trimite_push_reminder_eveniment(eveniment_id):
 
     return trimise
 
+
 # ══════════════════════════════════════
 # AUTH
 # ══════════════════════════════════════
@@ -202,12 +210,14 @@ def login():
 
     return render_template('login.html')
 
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('Ai fost deconectat.', 'info')
     return redirect(url_for('login'))
+
 
 @app.route('/schimba-parola', methods=['GET', 'POST'])
 @login_required
@@ -233,6 +243,7 @@ def schimba_parola():
 
     return render_template('schimba_parola.html')
 
+
 # ══════════════════════════════════════
 # VOLUNTARI
 # ══════════════════════════════════════
@@ -256,6 +267,7 @@ def voluntari():
     departamente = [d[0] for d in departamente if d[0]]
     return render_template('voluntari.html', voluntari=lista,
                            cautare=cautare, dept=dept, departamente=departamente)
+
 
 @app.route('/voluntari/nou', methods=['GET', 'POST'])
 @login_required
@@ -296,6 +308,7 @@ def voluntar_nou():
     departamente = Departament.query.order_by(Departament.nume).all()
     return render_template('voluntar_nou.html', departamente=departamente)
 
+
 @app.route('/voluntari/<int:id>')
 @login_required
 @admin_or_teamleader_required
@@ -310,6 +323,7 @@ def voluntar_profil(id):
     prezent = len([p for p in pontaje if p.status == 'prezent'])
     return render_template('voluntar_profil.html', v=v,
                            pontaje=pontaje, total=total, prezent=prezent)
+
 
 @app.route('/voluntari/<int:id>/editeaza', methods=['GET', 'POST'])
 @login_required
@@ -352,6 +366,7 @@ def voluntar_editeaza(id):
     departamente = Departament.query.order_by(Departament.nume).all()
     return render_template('voluntar_editeaza.html', v=v, departamente=departamente)
 
+
 @app.route('/voluntari/<int:id>/dezactiveaza')
 @login_required
 @admin_required
@@ -362,11 +377,10 @@ def voluntar_dezactiveaza(id):
     flash(f'{v.prenume} {v.nume} a fost dezactivat.', 'info')
     return redirect(url_for('voluntari'))
 
+
 # ══════════════════════════════════════
 # EVENIMENTE
 # ══════════════════════════════════════
-from models import Eveniment
-
 @app.route('/evenimente')
 @login_required
 def evenimente():
@@ -377,6 +391,7 @@ def evenimente():
     trecute = Eveniment.query.filter(Eveniment.data < acum, Eveniment.activ == True)\
                             .order_by(Eveniment.data.desc()).limit(10).all()
     return render_template('evenimente.html', viitoare=viitoare, trecute=trecute)
+
 
 @app.route('/evenimente/nou', methods=['GET', 'POST'])
 @login_required
@@ -424,6 +439,7 @@ def eveniment_nou():
         flash(f'Evenimentul "{e.titlu}" a fost creat!', 'success')
         return redirect(url_for('evenimente'))
     return render_template('eveniment_nou.html')
+
 
 @app.route('/evenimente/<int:id>')
 @login_required
@@ -473,6 +489,7 @@ def eveniment_detalii(id):
         alocari_dict=alocari_dict
     )
 
+
 @app.route('/evenimente/<int:id>/confirma', methods=['POST'])
 @login_required
 def eveniment_confirma(id):
@@ -518,6 +535,7 @@ def eveniment_confirma(id):
         flash('A apărut o eroare la salvarea confirmării.', 'danger')
         return redirect(url_for('eveniment_detalii', id=id))
 
+
 @app.route('/evenimente/<int:id>/alocare', methods=['POST'])
 @login_required
 @admin_or_teamleader_required
@@ -551,6 +569,7 @@ def eveniment_alocare(id):
     flash('Alocarea a fost salvată.', 'success')
     return redirect(url_for('eveniment_detalii', id=id))
 
+
 @app.route('/evenimente/<int:id>/editeaza', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -571,6 +590,7 @@ def eveniment_editeaza(id):
         return redirect(url_for('eveniment_detalii', id=id))
     return render_template('eveniment_editeaza.html', e=e)
 
+
 @app.route('/evenimente/<int:id>/anuleaza')
 @login_required
 @admin_required
@@ -580,6 +600,7 @@ def eveniment_anuleaza(id):
     db.session.commit()
     flash(f'Evenimentul "{e.titlu}" a fost anulat.', 'info')
     return redirect(url_for('evenimente'))
+
 
 @app.route('/evenimente/<int:id>/trimite-reminder', methods=['POST'])
 @login_required
@@ -592,13 +613,134 @@ def eveniment_trimite_reminder(id):
         flash('Nu există voluntari fără răspuns pentru acest eveniment sau nu au subscription PWA.', 'info')
     return redirect(url_for('eveniment_detalii', id=id))
 
+
+@app.route('/alocari')
+@login_required
+def alocari():
+    evenimente = Eveniment.query.order_by(Eveniment.data.desc()).all()
+    alocari_per_eveniment = []
+
+    for event in evenimente:
+        alocari_event = Alocare.query.filter_by(eveniment_id=event.id).all()
+        departamente = {}
+
+        for al in alocari_event:
+            if hasattr(al.departament, 'nume'):
+                dept_name = al.departament.nume
+            else:
+                dept_name = al.departament or 'Fără departament'
+
+            if dept_name not in departamente:
+                departamente[dept_name] = {
+                    'teamleader': None,
+                    'voluntari': []
+                }
+
+            if getattr(al, 'este_teamleader', False):
+                departamente[dept_name]['teamleader'] = al.voluntar
+            else:
+                departamente[dept_name]['voluntari'].append(al.voluntar)
+
+        alocari_per_eveniment.append({
+            'event': event,
+            'departamente': departamente
+        })
+
+    return render_template('alocari.html', alocari_per_eveniment=alocari_per_eveniment)
+
+
+@app.route('/alocari/<int:event_id>/pdf')
+@login_required
+def export_alocari_pdf(event_id):
+    event = Eveniment.query.get_or_404(event_id)
+    alocari_event = Alocare.query.filter_by(eveniment_id=event.id).all()
+
+    departamente = {}
+    for al in alocari_event:
+        if hasattr(al.departament, 'nume'):
+            dept_name = al.departament.nume
+        else:
+            dept_name = al.departament or 'Fără departament'
+
+        if dept_name not in departamente:
+            departamente[dept_name] = {'teamleader': None, 'voluntari': []}
+
+        if getattr(al, 'este_teamleader', False):
+            departamente[dept_name]['teamleader'] = al.voluntar
+        else:
+            departamente[dept_name]['voluntari'].append(al.voluntar)
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    y = height - 2 * cm
+
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(2 * cm, y, f"Alocări pentru evenimentul: {getattr(event, 'titlu', 'Eveniment')}")
+    y -= 1 * cm
+
+    p.setFont("Helvetica", 10)
+    if getattr(event, 'data', None):
+        try:
+            data_text = event.data.strftime('%d.%m.%Y %H:%M')
+        except Exception:
+            data_text = str(event.data)
+        p.drawString(2 * cm, y, f"Data: {data_text}")
+        y -= 1 * cm
+
+    for dept_name, dept in departamente.items():
+        if y < 4 * cm:
+            p.showPage()
+            y = height - 2 * cm
+            p.setFont("Helvetica", 10)
+
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(2 * cm, y, f"Departament: {dept_name}")
+        y -= 0.8 * cm
+
+        p.setFont("Helvetica", 10)
+        tl = dept['teamleader']
+        if tl:
+            p.drawString(2.5 * cm, y, f"Teamleader: {tl.prenume} {tl.nume}")
+        else:
+            p.drawString(2.5 * cm, y, "Teamleader: Nedefinit")
+        y -= 0.7 * cm
+
+        p.drawString(2.5 * cm, y, "Voluntari:")
+        y -= 0.6 * cm
+
+        if dept['voluntari']:
+            for v in dept['voluntari']:
+                if y < 3 * cm:
+                    p.showPage()
+                    y = height - 2 * cm
+                    p.setFont("Helvetica", 10)
+                p.drawString(3 * cm, y, f"- {v.prenume} {v.nume}")
+                y -= 0.6 * cm
+        else:
+            p.drawString(3 * cm, y, "Niciun voluntar alocat.")
+            y -= 0.6 * cm
+
+        y -= 0.4 * cm
+
+    p.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"alocari_{event.id}.pdf",
+        mimetype='application/pdf'
+    )
+
+
 # ══════════════════════════════════════
 # PONTAJ
 # ══════════════════════════════════════
 import qrcode
-import io
 import base64
 from models import Pontaj, Confirmare
+
 
 @app.route('/pontaj/<int:eveniment_id>')
 @login_required
@@ -647,6 +789,7 @@ def pontaj(eveniment_id):
         pontaje_json=pontaje_json
     )
 
+
 @app.route('/pontaj/<int:eveniment_id>/marcheaza', methods=['POST'])
 @login_required
 @admin_or_teamleader_required
@@ -669,6 +812,7 @@ def pontaj_marcheaza(eveniment_id):
         db.session.add(p)
     db.session.commit()
     return '', 204
+
 
 @app.route('/pontaj/<int:eveniment_id>/bulk', methods=['POST'])
 @login_required
@@ -693,6 +837,7 @@ def pontaj_bulk(eveniment_id):
     flash('Pontaj salvat cu succes!', 'success')
     return redirect(url_for('eveniment_detalii', id=eveniment_id))
 
+
 # ══════════════════════════════════════
 # QR & CHECKIN
 # ══════════════════════════════════════
@@ -708,6 +853,7 @@ def qr_voluntar(voluntar_id):
     buf.seek(0)
     img_b64 = base64.b64encode(buf.getvalue()).decode()
     return render_template('qr.html', v=v, img_b64=img_b64, url=url)
+
 
 @app.route('/checkin/<int:voluntar_id>')
 def checkin_qr(voluntar_id):
@@ -736,6 +882,7 @@ def checkin_qr(voluntar_id):
     return render_template('checkin_result.html', v=v, eveniment=eveniment,
                            mesaj=f'Check-in reușit pentru {eveniment.titlu}!', ok=True)
 
+
 @app.route('/departamente')
 @login_required
 def departamente_view():
@@ -761,6 +908,7 @@ def departamente_view():
         teamleaders_all=teamleaders_all
     )
 
+
 @app.route('/departamente/nou', methods=['POST'])
 @login_required
 @admin_required
@@ -785,6 +933,7 @@ def departament_nou():
     flash('Departament creat.', 'success')
     return redirect(url_for('departamente_view'))
 
+
 @app.route('/departamente/<int:id>/editeaza', methods=['POST'])
 @login_required
 @admin_required
@@ -808,6 +957,7 @@ def departament_editeaza(id):
     db.session.commit()
     flash('Departament actualizat.', 'success')
     return redirect(url_for('departamente_view'))
+
 
 @app.route('/departamente/<int:id>/teamleader/adauga', methods=['POST'])
 @login_required
@@ -844,6 +994,7 @@ def departament_teamleader_adauga(id):
     flash('Teamleader adăugat la departament.', 'success')
     return redirect(url_for('departamente_view'))
 
+
 @app.route('/departamente/<int:id>/teamleader/sterge', methods=['POST'])
 @login_required
 @admin_required
@@ -863,6 +1014,7 @@ def departament_teamleader_sterge(id):
     db.session.commit()
     flash('Teamleader eliminat din departament.', 'info')
     return redirect(url_for('departamente_view'))
+
 
 # ══════════════════════════════════════
 # MISC
@@ -905,6 +1057,7 @@ def debug_reminder(id):
 
     return "<pre style='font-family:monospace;padding:20px'>" + "\n".join(lines) + "</pre>"
 
+
 @app.route('/check-subs')
 @login_required
 def check_subs():
@@ -912,12 +1065,14 @@ def check_subs():
     subs = PushSubscription.query.all()
     return f'Subscriptii in DB: {len(subs)}'
 
+
 @app.route('/sw.js')
 def service_worker():
     return app.send_static_file('sw.js'), 200, {
         'Content-Type': 'application/javascript',
         'Service-Worker-Allowed': '/'
     }
+
 
 from sqlalchemy import text
 
@@ -946,6 +1101,7 @@ with app.app_context():
                 print("✅ Migrare local: must_change_password adăugată")
     except Exception as e:
         print(f"Migrare Render/local must_change_password: {e}")
+
 
 if __name__ == '__main__':
     app.run(debug=True)

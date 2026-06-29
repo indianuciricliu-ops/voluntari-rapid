@@ -2,7 +2,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 
-
 db = SQLAlchemy()
 
 
@@ -22,6 +21,9 @@ class Voluntar(UserMixin, db.Model):
 
     pontaje = db.relationship('Pontaj', backref='voluntar', lazy=True)
     confirmari = db.relationship('Confirmare', backref='voluntar', lazy=True)
+    alocari = db.relationship('Alocare', backref='voluntar', lazy=True)
+    push_subscriptions = db.relationship('PushSubscription', backref='voluntar', lazy=True)
+    departament_teamleaderi = db.relationship('DepartamentTeamleader', backref='voluntar', lazy=True)
 
 
 class Eveniment(db.Model):
@@ -38,6 +40,7 @@ class Eveniment(db.Model):
 
     pontaje = db.relationship('Pontaj', backref='eveniment', lazy=True)
     confirmari = db.relationship('Confirmare', backref='eveniment', lazy=True)
+    alocari = db.relationship('Alocare', backref='eveniment', lazy=True)
 
 
 class Pontaj(db.Model):
@@ -66,11 +69,9 @@ class Alocare(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
     eveniment_id = db.Column(db.Integer, db.ForeignKey('evenimente.id'), nullable=False)
-    departament = db.Column(db.String(50))
+    departament = db.Column(db.String(50), nullable=False)
+    este_teamleader = db.Column(db.Boolean, default=False)
     data_alocare = db.Column(db.DateTime, default=datetime.utcnow)
-
-    voluntar = db.relationship('Voluntar', backref='alocari', lazy=True)
-    eveniment = db.relationship('Eveniment', backref='alocari', lazy=True)
 
 
 class PushSubscription(db.Model):
@@ -98,5 +99,3 @@ class DepartamentTeamleader(db.Model):
     departament_id = db.Column(db.Integer, db.ForeignKey('departamente.id'), nullable=False)
     voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
     data_alocare = db.Column(db.DateTime, default=datetime.utcnow)
-
-    voluntar = db.relationship('Voluntar', backref='departament_teamleaderi', lazy=True)
