@@ -2,6 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
 from models import db, Voluntar
+from werkzeug.security import generate_password_hash
 from pywebpush import webpush, WebPushException
 from functools import wraps
 import os
@@ -132,6 +133,60 @@ def subscribe():
         db.session.commit()
     return jsonify({'status': 'ok'})
 
+def trimite_push_reminder_eveniment(eveniment_id):
+    """
+    Trimite notificare PWA de reminder pentru evenimentul dat
+    DOAR către voluntarii activi care NU au nicio confirmare la acest eveniment.
+    """
+
+    from models import Eveniment, Confirmare, PushSubscription
+    import json
+
+    # 1. Luăm evenimentul
+    e = db.session.get(Eveniment, eveniment_id)
+    if not e:
+        return 0
+
+    # 2. Voluntarii care AU deja confirmare (vin / nu_vin / poate)
+    confirmari = Confirmare.query.filter_by(eveniment_id=eveniment_id).all()
+    votanti_ids = {c.voluntar_id for c in confirmari}
+
+    # 3. Subscrieri PWA doar pentru voluntarii activi care NU sunt în votanti_ids
+    subs_query = PushSubscription.query.join(
+        Voluntar, PushSubscription.voluntar_id == Voluntar.id
+    ).filter(
+        Voluntar.activ == True
+    )
+
+    if votanti_ids:
+        subs_query = subs_query.filter(~Voluntar.id.in_(votanti_ids))
+
+    subs = subs_query.all()
+
+    trimise = 0
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
+                },
+                data=json.dumps({
+                    "title": "Reminder eveniment 🔴⚪",
+                    "body": f"Te rugăm să confirmi dacă vii la: {e.titlu}",
+                    # deschide direct pagina de detalii a evenimentului
+                    "url": f"/evenimente/{e.id}"
+                }),
+                vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
+                vapid_claims={"sub": os.environ.get('VAPID_EMAIL')}
+            )
+            trimise += 1
+        except WebPushException as err:
+            app.logger.warning(f"Push reminder error pentru {sub.endpoint}: {err}")
+        except Exception as err:
+            app.logger.warning(f"Push reminder altă eroare: {err}")
+
+    return trimise
 
 # ══════════════════════════════════════
 # AUTH
@@ -202,6 +257,10 @@ def voluntar_nou():
         rol = (request.form.get('rol') or '').strip()
         parola = (request.form.get('parola') or '').strip()
 
+        if not parola:
+            flash('Parola este obligatorie.', 'danger')
+            return redirect(url_for('voluntar_nou'))
+
         v = Voluntar(
             prenume=prenume,
             nume=nume,
@@ -211,7 +270,9 @@ def voluntar_nou():
             rol=rol,
             activ=True
         )
-        v.set_password(parola)
+        # salvăm hash-ul parolei în câmpul parola
+        v.parola = generate_password_hash(parola)
+
         db.session.add(v)
         db.session.commit()
         flash('Voluntarul a fost creat.', 'success')
@@ -503,6 +564,22 @@ def eveniment_anuleaza(id):
     flash(f'Evenimentul "{e.titlu}" a fost anulat.', 'info')
     return redirect(url_for('evenimente'))
 
+@app.route('/evenimente/<int:id>/trimite-reminder', methods=['POST'])
+@login_required
+@admin_required
+def eveniment_trimite_reminder(id):
+    """
+    Buton doar pentru admin – retrimite notificarea PWA
+    ca reminder către cei care nu au votat la acest eveniment.
+    """
+    numar = trimite_push_reminder_eveniment(id)
+
+    if numar > 0:
+        flash(f'Reminder trimis către {numar} voluntari care nu au votat.', 'success')
+    else:
+        flash('Nu există voluntari fără răspuns pentru acest eveniment sau nu au subscription PWA.', 'info')
+
+    return redirect(url_for('eveniment_detalii', id=id))
 
 # ══════════════════════════════════════
 # PONTAJ
@@ -790,6 +867,44 @@ def departament_teamleader_sterge(id):
 # ══════════════════════════════════════
 # MISC
 # ══════════════════════════════════════
+@app.route('/debug/reminder/<int:id>')
+@login_required
+@admin_required
+def debug_reminder(id):
+    from models import Eveniment, Confirmare, PushSubscription
+
+    e = db.session.get(Eveniment, id)
+    if not e:
+        return 'Eveniment inexistent', 404
+
+    confirmari = Confirmare.query.filter_by(eveniment_id=id).all()
+    votanti_ids = {c.voluntar_id for c in confirmari}
+
+    voluntari_activi = Voluntar.query.filter_by(activ=True).all()
+
+    subs = PushSubscription.query.all()
+    subs_map = {}
+    for s in subs:
+        subs_map.setdefault(s.voluntar_id, 0)
+        subs_map[s.voluntar_id] += 1
+
+    lines = [
+        f"Eveniment: #{e.id} - {e.titlu}",
+        f"Confirmari: {len(confirmari)} | Votanti IDs: {votanti_ids}",
+        f"Voluntari activi: {len(voluntari_activi)}",
+        f"Subscriptii totale in DB: {len(subs)}",
+        "─" * 50
+    ]
+
+    for v in voluntari_activi:
+        are_confirmare = "✅ votat" if v.id in votanti_ids else "❌ nevotat"
+        subs_count = subs_map.get(v.id, 0)
+        sub_status = f"📲 {subs_count} sub" if subs_count > 0 else "🔕 fără sub"
+        va_primi = "👉 PRIMEȘTE reminder" if (v.id not in votanti_ids and subs_count > 0) else ""
+        lines.append(f"#{v.id} {v.prenume} {v.nume} | {are_confirmare} | {sub_status} {va_primi}")
+
+    return "<pre style='font-family:monospace;padding:20px'>" + "\n".join(lines) + "</pre>"
+
 @app.route('/check-subs')
 @login_required
 def check_subs():
@@ -826,3 +941,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
