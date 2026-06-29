@@ -729,6 +729,167 @@ def export_alocari_pdf(event_id):
         mimetype='application/pdf'
     )
 
+@app.route('/statistici')
+@login_required
+@admin_or_teamleader_required
+def statistici():
+    from models import Pontaj
+    from sqlalchemy import func, case
+
+    total_voluntari = Voluntar.query.filter_by(activ=True).count()
+    total_evenimente = Eveniment.query.filter_by(activ=True).count()
+    total_pontaje = Pontaj.query.count()
+    total_prezente = Pontaj.query.filter_by(status='prezent').count()
+    total_absenti = Pontaj.query.filter_by(status='absent').count()
+    rata_globala = round((total_prezente / total_pontaje * 100), 1) if total_pontaje else 0
+
+    voluntari_stats = db.session.query(
+        Voluntar.id,
+        Voluntar.nume,
+        Voluntar.prenume,
+        Voluntar.departament,
+        Voluntar.rol,
+        func.sum(case((Pontaj.status == 'prezent', 1), else_=0)).label('prezente'),
+        func.sum(case((Pontaj.status == 'absent', 1), else_=0)).label('absente'),
+        func.count(Pontaj.id).label('total')
+    ).outerjoin(Pontaj, Voluntar.id == Pontaj.voluntar_id)\
+     .filter(Voluntar.activ == True)\
+     .group_by(Voluntar.id).all()
+
+    voluntari_rank = []
+    for v in voluntari_stats:
+        total = int(v.total or 0)
+        prezente = int(v.prezente or 0)
+        absente = int(v.absente or 0)
+        rata = round((prezente / total * 100), 1) if total else 0
+        voluntari_rank.append({
+            'id': v.id,
+            'nume': v.nume,
+            'prenume': v.prenume,
+            'departament': v.departament,
+            'rol': v.rol,
+            'prezente': prezente,
+            'absente': absente,
+            'total': total,
+            'rata': rata
+        })
+
+    top_voluntari = sorted(
+        voluntari_rank,
+        key=lambda x: (x['rata'], x['prezente']),
+        reverse=True
+    )[:10]
+
+    cei_mai_multe_absente = sorted(
+        voluntari_rank,
+        key=lambda x: (x['absente'], -x['rata']),
+        reverse=True
+    )[:10]
+
+    evenimente_stats = db.session.query(
+        Eveniment.id,
+        Eveniment.titlu,
+        Eveniment.data,
+        func.count(Pontaj.id).label('total_pontaje'),
+        func.sum(case((Pontaj.status == 'prezent', 1), else_=0)).label('prezente'),
+        func.sum(case((Pontaj.status == 'absent', 1), else_=0)).label('absente')
+    ).outerjoin(Pontaj, Eveniment.id == Pontaj.eveniment_id)\
+     .group_by(Eveniment.id)\
+     .order_by(Eveniment.data.desc()).all()
+
+    evenimente_rank = []
+    for e in evenimente_stats:
+        total = int(e.total_pontaje or 0)
+        prezente = int(e.prezente or 0)
+        absente = int(e.absente or 0)
+        rata = round((prezente / total * 100), 1) if total else 0
+        evenimente_rank.append({
+            'id': e.id,
+            'titlu': e.titlu,
+            'data': e.data,
+            'total': total,
+            'prezente': prezente,
+            'absente': absente,
+            'rata': rata
+        })
+
+    top_evenimente = sorted(
+        evenimente_rank,
+        key=lambda x: (x['rata'], x['prezente']),
+        reverse=True
+    )[:10]
+
+    evenimente_cu_cele_mai_multe_absente = sorted(
+        evenimente_rank,
+        key=lambda x: (x['absente'], -x['rata']),
+        reverse=True
+    )[:10]
+
+    departamente_stats = db.session.query(
+        Voluntar.departament,
+        func.count(Voluntar.id).label('total_voluntari'),
+        func.sum(case((Pontaj.status == 'prezent', 1), else_=0)).label('prezente'),
+        func.sum(case((Pontaj.status == 'absent', 1), else_=0)).label('absente')
+    ).outerjoin(Pontaj, Voluntar.id == Pontaj.voluntar_id)\
+     .filter(Voluntar.activ == True)\
+     .group_by(Voluntar.departament).all()
+
+    dept_rows = []
+    for d in departamente_stats:
+        prez = int(d.prezente or 0)
+        absn = int(d.absente or 0)
+        tot = int(d.total_voluntari or 0)
+        total_p = prez + absn
+        rata = round((prez / total_p * 100), 1) if total_p else 0
+        dept_rows.append({
+            'departament': d.departament or 'Fără departament',
+            'voluntari': tot,
+            'prezente': prez,
+            'absente': absn,
+            'rata': rata
+        })
+
+    voluntar_id = request.args.get('voluntar_id', type=int)
+    selected_voluntar = db.session.get(Voluntar, voluntar_id) if voluntar_id else None
+    selected_hist = []
+    selected_tot = {'prezente': 0, 'absente': 0, 'total': 0, 'rata': 0}
+
+    if selected_voluntar:
+        selected_hist = db.session.query(Pontaj, Eveniment)\
+            .join(Eveniment, Pontaj.eveniment_id == Eveniment.id)\
+            .filter(Pontaj.voluntar_id == selected_voluntar.id)\
+            .order_by(Eveniment.data.desc()).all()
+
+        p = sum(1 for x, _ in selected_hist if x.status == 'prezent')
+        a = sum(1 for x, _ in selected_hist if x.status == 'absent')
+        t = len(selected_hist)
+        selected_tot = {
+            'prezente': p,
+            'absente': a,
+            'total': t,
+            'rata': round((p / t * 100), 1) if t else 0
+        }
+
+    recent_voluntari = Voluntar.query.filter_by(activ=True).order_by(Voluntar.nume, Voluntar.prenume).all()
+
+    return render_template(
+        'statistici.html',
+        total_voluntari=total_voluntari,
+        total_evenimente=total_evenimente,
+        total_pontaje=total_pontaje,
+        total_prezente=total_prezente,
+        total_absenti=total_absenti,
+        rata_globala=rata_globala,
+        top_voluntari=top_voluntari,
+        cei_mai_multe_absente=cei_mai_multe_absente,
+        top_evenimente=top_evenimente,
+        evenimente_cu_cele_mai_multe_absente=evenimente_cu_cele_mai_multe_absente,
+        dept_rows=dept_rows,
+        selected_voluntar=selected_voluntar,
+        selected_hist=selected_hist,
+        selected_tot=selected_tot,
+        recent_voluntari=recent_voluntari
+    )
 
 # ══════════════════════════════════════
 # PONTAJ
