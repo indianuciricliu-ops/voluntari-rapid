@@ -329,6 +329,22 @@ def voluntar_editeaza(id):
         v.telefon = (request.form.get('telefon') or '').strip()
         v.departament = (request.form.get('departament') or '').strip()
         v.rol = (request.form.get('rol') or '').strip()
+
+        parola_noua = (request.form.get('parola') or '').strip()
+        confirmare_parola = (request.form.get('confirmare_parola') or '').strip()
+
+        if parola_noua or confirmare_parola:
+            if not parola_noua or not confirmare_parola:
+                flash('Completează ambele câmpuri de parolă.', 'danger')
+                return redirect(url_for('voluntar_editeaza', id=id))
+
+            if parola_noua != confirmare_parola:
+                flash('Parolele nu coincid.', 'danger')
+                return redirect(url_for('voluntar_editeaza', id=id))
+
+            v.parola = generate_password_hash(parola_noua)
+            v.must_change_password = False
+
         db.session.commit()
         flash('Profilul voluntarului a fost actualizat.', 'success')
         return redirect(url_for('voluntar_profil', id=id))
