@@ -2,34 +2,87 @@
 <html lang="ro">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scanare QR</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f4f4;
+      color: #222;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.12);
+      padding: 24px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 16px;
+      font-size: 24px;
+    }
+    #reader {
+      width: 100%;
+    }
+    .note {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-  <h1>Scanare QR</h1>
-  <div id="reader" style="width:360px"></div>
+  <div class="wrap">
+    <h1>Scanare QR</h1>
+    <div id="reader"></div>
+    <div class="note">Ține codul QR în fața camerei.</div>
+  </div>
+
   <script>
     const eventId = {{ event_id }};
     let done = false;
 
-    async function sendScan(text){
-      const r = await fetch(`/api/scan-pontaj/${eventId}`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({qr:text})
-      });
-      const j = await r.json();
-      alert(j.message || 'OK');
+    async function sendScan(text) {
+      try {
+        const r = await fetch(`/api/scan-pontaj/${eventId}`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({qr:text})
+        });
+        const j = await r.json();
+        alert(j.message || 'OK');
+      } catch (e) {
+        alert('Eroare la trimiterea scanării.');
+      }
     }
 
-    function onScanSuccess(decodedText){
-      if(done) return;
+    function stopScanner() {
+      try {
+        html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
+      } catch (e) {}
+    }
+
+    function onScanSuccess(decodedText) {
+      if (done) return;
       done = true;
-      html5QrcodeScanner.stop().then(()=>html5QrcodeScanner.clear()).catch(()=>{});
+      stopScanner();
       sendScan(decodedText);
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner('reader', {fps:10, qrbox:250}, false);
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      'reader',
+      { fps: 10, qrbox: 250 },
+      false
+    );
+
     html5QrcodeScanner.render(onScanSuccess);
   </script>
 </body>
