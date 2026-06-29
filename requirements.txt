@@ -30,6 +30,7 @@ pycparser==3.0
 python-dotenv==1.2.2
 pywebpush==2.3.0
 qrcode==8.2
+reportlab==5.0.0
 requests==2.34.2
 SQLAlchemy==2.0.51
 typing_extensions==4.15.0
