@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <title>Scanare QR</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <h1>Scanare QR</h1>
+  <div id="reader" style="width:360px"></div>
+  <script>
+    const eventId = {{ event_id }};
+    let done = false;
+
+    async function sendScan(text){
+      const r = await fetch(`/api/scan-pontaj/${eventId}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({qr:text})
+      });
+      const j = await r.json();
+      alert(j.message || 'OK');
+    }
+
+    function onScanSuccess(decodedText){
+      if(done) return;
+      done = true;
+      html5QrcodeScanner.stop().then(()=>html5QrcodeScanner.clear()).catch(()=>{});
+      sendScan(decodedText);
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner('reader', {fps:10, qrbox:250}, false);
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
