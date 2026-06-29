@@ -546,6 +546,51 @@ def api_scan_pontaj(eveniment_id):
     db.session.commit()
     return jsonify({'ok': True, 'message': msg})
 
+
+@app.route('/voluntari')
+@login_required
+@admin_or_teamleader_required
+def voluntari():
+    cautare = request.args.get('q', '')
+    dept = request.args.get('departament', '')
+    query = Voluntar.query.filter_by(activ=True)
+    if cautare:
+        query = query.filter(
+            (Voluntar.nume.ilike(f'%{cautare}%')) |
+            (Voluntar.prenume.ilike(f'%{cautare}%')) |
+            (Voluntar.email.ilike(f'%{cautare}%'))
+        )
+    if dept:
+        query = query.filter_by(departament=dept)
+    lista = query.order_by(Voluntar.nume).all()
+    departamente = [d[0] for d in db.session.query(Voluntar.departament).distinct().all() if d[0]]
+    return render_template('voluntari.html', voluntari=lista, cautare=cautare, dept=dept, departamente=departamente)
+
+@app.route('/voluntari/nou', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def voluntar_nou():
+    from models import Departament
+    if request.method == 'POST':
+        prenume = (request.form.get('prenume') or '').strip()
+        nume = (request.form.get('nume') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        telefon = (request.form.get('telefon') or '').strip()
+        departament = (request.form.get('departament') or '').strip()
+        rol = (request.form.get('rol') or '').strip()
+        parola = (request.form.get('parola') or '').strip()
+        if not parola:
+            flash('Parola este obligatorie.', 'danger')
+            return redirect(url_for('voluntar_nou'))
+        v = Voluntar(prenume=prenume, nume=nume, email=email, telefon=telefon, departament=departament, rol=rol, activ=True)
+        v.must_change_password = True
+        v.parola = generate_password_hash(parola)
+        db.session.add(v)
+        db.session.commit()
+        flash('Voluntarul a fost creat.', 'success')
+        return redirect(url_for('voluntari'))
+    return render_template('voluntar_nou.html', departamente=Departament.query.order_by(Departament.nume).all())
+
 @app.route('/departamente')
 @login_required
 def departamente_view():
