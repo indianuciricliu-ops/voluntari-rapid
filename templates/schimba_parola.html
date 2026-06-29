@@ -1,26 +1,92 @@
-{% extends "base.html" %}
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schimbă parola</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f2ea;
+      margin: 0;
+      padding: 0;
+    }
+    .wrap {
+      max-width: 520px;
+      margin: 80px auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+    h2 {
+      margin-top: 0;
+      color: #7a0019;
+    }
+    .muted {
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: 0;
+      border-radius: 10px;
+      background: #7a0019;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .flash {
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .success { background: #d1fae5; color: #065f46; }
+    .danger { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Schimbă parola</h2>
+    <p class="muted">La prima logare trebuie să îți schimbi parola temporară.</p>
 
-{% block content %}
-<div class="container mt-4" style="max-width: 600px;">
-  <div class="card p-4">
-    <h3 class="mb-3">Schimbă parola</h3>
-    <p class="text-muted">La prima logare trebuie să îți schimbi parola temporară.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
     <form method="POST">
-      <div class="mb-3">
-        <label class="form-label">Parola nouă</label>
-        <input type="password" name="parola_noua" class="form-control" required>
+      <div class="form-group">
+        <label for="parola_noua">Parola nouă</label>
+        <input type="password" id="parola_noua" name="parola_noua" required>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Confirmă parola</label>
-        <input type="password" name="confirmare" class="form-control" required>
+      <div class="form-group">
+        <label for="confirmare">Confirmă parola</label>
+        <input type="password" id="confirmare" name="confirmare" required>
       </div>
 
-      <button type="submit" class="btn btn-primary">
-        Salvează parola nouă
-      </button>
+      <button type="submit" class="btn">Salvează parola nouă</button>
     </form>
   </div>
-</div>
-{% endblock %}
+</body>
+</html>
