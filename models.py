@@ -16,6 +16,7 @@ class Voluntar(UserMixin, db.Model):
     departament = db.Column(db.String(50))
     rol = db.Column(db.String(20), default='voluntar')
     parola = db.Column(db.String(200), nullable=False)
+    must_change_password = db.Column(db.Boolean, default=True)
     activ = db.Column(db.Boolean, default=True)
     data_inscriere = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -59,6 +60,7 @@ class Confirmare(db.Model):
     ora_sosire = db.Column(db.String(50))
     data_raspuns = db.Column(db.DateTime, default=datetime.utcnow)
 
+
 class Alocare(db.Model):
     __tablename__ = 'alocari'
     id = db.Column(db.Integer, primary_key=True)
@@ -70,6 +72,7 @@ class Alocare(db.Model):
     voluntar = db.relationship('Voluntar', backref='alocari', lazy=True)
     eveniment = db.relationship('Eveniment', backref='alocari', lazy=True)
 
+
 class PushSubscription(db.Model):
     __tablename__ = 'push_subscriptions'
     id = db.Column(db.Integer, primary_key=True)
@@ -78,6 +81,7 @@ class PushSubscription(db.Model):
     p256dh = db.Column(db.Text, nullable=False)
     auth = db.Column(db.Text, nullable=False)
     data_creare = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Departament(db.Model):
     __tablename__ = 'departamente'
@@ -95,4 +99,4 @@ class DepartamentTeamleader(db.Model):
     voluntar_id = db.Column(db.Integer, db.ForeignKey('voluntari.id'), nullable=False)
     data_alocare = db.Column(db.DateTime, default=datetime.utcnow)
 
-    voluntar = db.relationship('Voluntar', backref='departament_teamleaderi', lazy=True)    
+    voluntar = db.relationship('Voluntar', backref='departament_teamleaderi', lazy=True)

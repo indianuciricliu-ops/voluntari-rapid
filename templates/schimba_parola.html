@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+  <div class="card p-4">
+    <h3 class="mb-3">Schimbă parola</h3>
+    <p class="text-muted">La prima logare trebuie să îți schimbi parola temporară.</p>
+
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Parola nouă</label>
+        <input type="password" name="parola_noua" class="form-control" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Confirmă parola</label>
+        <input type="password" name="confirmare" class="form-control" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        Salvează parola nouă
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

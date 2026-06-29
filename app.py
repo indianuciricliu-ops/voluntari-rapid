@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
 from models import db, Voluntar
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from pywebpush import webpush, WebPushException
 from functools import wraps
 import os
@@ -194,18 +194,26 @@ def trimite_push_reminder_eveniment(eveniment_id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
+        if getattr(current_user, 'must_change_password', False):
+            return redirect(url_for('schimba_parola'))
         return redirect(url_for('index'))
+
     if request.method == 'POST':
         email = request.form.get('email')
         parola = request.form.get('parola')
         voluntar = Voluntar.query.filter_by(email=email).first()
-        from werkzeug.security import check_password_hash
+
         if voluntar and check_password_hash(voluntar.parola, parola):
             login_user(voluntar)
             flash(f'Bun venit, {voluntar.prenume}!', 'success')
+
+            if getattr(voluntar, 'must_change_password', False):
+                return redirect(url_for('schimba_parola'))
+
             return redirect(url_for('index'))
         else:
             flash('Email sau parola gresite.', 'danger')
+
     return render_template('login.html')
 
 
@@ -216,6 +224,30 @@ def logout():
     flash('Ai fost deconectat.', 'info')
     return redirect(url_for('login'))
 
+
+@app.route('/schimba-parola', methods=['GET', 'POST'])
+@login_required
+def schimba_parola():
+    if request.method == 'POST':
+        parola_noua = (request.form.get('parola_noua') or '').strip()
+        confirmare = (request.form.get('confirmare') or '').strip()
+
+        if not parola_noua or not confirmare:
+            flash('Completează toate câmpurile.', 'danger')
+            return redirect(url_for('schimba_parola'))
+
+        if parola_noua != confirmare:
+            flash('Parolele nu coincid.', 'danger')
+            return redirect(url_for('schimba_parola'))
+
+        current_user.parola = generate_password_hash(parola_noua)
+        current_user.must_change_password = False
+        db.session.commit()
+
+        flash('Parola a fost schimbată cu succes.', 'success')
+        return redirect(url_for('index'))
+
+    return render_template('schimba_parola.html')
 
 # ══════════════════════════════════════
 # VOLUNTARI
@@ -270,6 +302,7 @@ def voluntar_nou():
             rol=rol,
             activ=True
         )
+        v.must_change_password = True
         # salvăm hash-ul parolei în câmpul parola
         v.parola = generate_password_hash(parola)
 
