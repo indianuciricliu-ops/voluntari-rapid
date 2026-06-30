@@ -316,6 +316,10 @@
          style="background:#6b0018; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
         ▶ Deschide pontaj live
       </a>
+      <a href="{{ url_for('scan_qr', event_id=e.id) }}"
+     style="background:#198754; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
+    Scanează QR
+  </a>
     </div>
     {% if pontaje %}
     <table>
