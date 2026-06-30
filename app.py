@@ -1039,40 +1039,51 @@ def scan_qr(event_id):
 @admin_or_teamleader_required
 def api_scan_pontaj(event_id):
     from datetime import datetime
-
-    e = db.session.get(Eveniment, event_id)
-    if not e or not e.activ:
-        return jsonify({
-            'success': False,
-            'action': 'error',
-            'message': 'Eveniment inexistent sau inactiv.'
-        }), 404
-
-    data = request.get_json(silent=True) or {}
-    qr_text = (data.get('qr_text') or '').strip()
-
-    if not qr_text:
-        return jsonify({
-            'success': False,
-            'action': 'error',
-            'message': 'Cod QR gol sau invalid.'
-        }), 400
-
-    if not qr_text.startswith('VOLUNTAR:'):
-        return jsonify({
-            'success': False,
-            'action': 'error',
-            'message': 'Format QR invalid.'
-        }), 400
-
     try:
+        e = db.session.get(Eveniment, event_id)
+        if not e or not e.activ:
+            return jsonify(success=False, action='error', message='Eveniment inexistent sau inactiv.'), 404
+
+        data = request.get_json(silent=True) or {}
+        qr_text = (data.get('qr_text') or '').strip()
+
+        if not qr_text:
+            return jsonify(success=False, action='error', message='Cod QR gol sau invalid.'), 400
+        if not qr_text.startswith('VOLUNTAR:'):
+            return jsonify(success=False, action='error', message='Format QR invalid.'), 400
+
         voluntar_id = int(qr_text.split(':', 1)[1])
-    except (ValueError, IndexError):
-        return jsonify({
-            'success': False,
-            'action': 'error',
-            'message': 'Format QR invalid.'
-        }), 400
+        v = db.session.get(Voluntar, voluntar_id)
+        if not v or not v.activ:
+            return jsonify(success=False, action='error', message='Voluntarul nu există sau este inactiv.'), 404
+
+        acum = datetime.utcnow()
+        pontaj = Pontaj.query.filter_by(eveniment_id=event_id, voluntar_id=voluntar_id).first()
+
+        if not pontaj:
+            pontaj = Pontaj(voluntar_id=voluntar_id, eveniment_id=event_id, status='prezent', ora_checkin=acum)
+            db.session.add(pontaj)
+            db.session.commit()
+            return jsonify(success=True, action='checkin', message=f'Check-in reușit pentru {v.prenume} {v.nume}.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M'))
+
+        if not pontaj.ora_checkin:
+            pontaj.status = 'prezent'
+            pontaj.ora_checkin = acum
+            db.session.commit()
+            return jsonify(success=True, action='checkin', message=f'Check-in reușit pentru {v.prenume} {v.nume}.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M'))
+
+        if not pontaj.ora_checkout:
+            pontaj.status = 'prezent'
+            pontaj.ora_checkout = acum
+            db.session.commit()
+            return jsonify(success=True, action='checkout', message=f'Check-out reușit pentru {v.prenume} {v.nume}.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M'))
+
+        return jsonify(success=False, action='closed', message=f'{v.prenume} {v.nume} are deja check-in și check-out făcute.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M')), 200
+
+    except Exception as ex:
+        db.session.rollback()
+        app.logger.exception(ex)
+        return jsonify(success=False, action='error', message='Eroare internă la scanare.'), 500
 
 
 @app.route('/departamente')
@@ -1249,6 +1260,17 @@ def debug_reminder(id):
 
     return "<pre style='font-family:monospace;padding:20px'>" + "\n".join(lines) + "</pre>"
 
+from werkzeug.exceptions import HTTPException
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'message': e.description,
+            'error': e.name
+        }), e.code
+    return e
 
 @app.route('/check-subs')
 @login_required
