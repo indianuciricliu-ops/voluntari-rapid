@@ -6,84 +6,91 @@
   <title>Scanare QR</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f4f4f4;
-      color: #222;
-    }
-    .wrap {
-      width: 100%;
-      max-width: 420px;
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 10px 35px rgba(0,0,0,.12);
-      padding: 24px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 16px;
-      font-size: 24px;
-    }
-    #reader {
-      width: 100%;
-    }
-    .note {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #666;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f4f4f4; color: #222; }
+    .wrap { width: 100%; max-width: 420px; background: #fff; border-radius: 18px; box-shadow: 0 10px 35px rgba(0,0,0,.12); padding: 24px; text-align: center; }
+    h1 { margin-bottom: 8px; font-size: 24px; }
+    .sub { font-size: 14px; color: #666; margin-bottom: 16px; }
+    #reader { width: 100%; }
+    .note { margin-top: 12px; font-size: 14px; color: #666; }
+    .result { margin-top: 16px; padding: 12px 14px; border-radius: 12px; font-size: 14px; display: none; }
+    .result.ok { display: block; background: #d4edda; color: #155724; }
+    .result.warn { display: block; background: #fff3cd; color: #856404; }
+    .result.err { display: block; background: #f8d7da; color: #721c24; }
+    .actions { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-block; padding: 10px 14px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; }
+    .btn-primary { background: #6b0018; color: #fff; }
+    .btn-outline { background: #fff; color: #333; border: 1px solid #ddd; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Scanare QR</h1>
+    <div class="sub">{{ e.titlu }}</div>
     <div id="reader"></div>
     <div class="note">Ține codul QR în fața camerei.</div>
+    <div id="result" class="result"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="restartScanner()">Scanează din nou</button>
+      <a class="btn btn-outline" href="{{ url_for('pontaj', eveniment_id=e.id) }}">Înapoi la pontaj</a>
+    </div>
   </div>
 
   <script>
     const eventId = {{ event_id }};
-    let done = false;
+    let scanner = null;
+    let busy = false;
 
-    async function sendScan(text) {
+    function setResult(type, message) {
+      const box = document.getElementById('result');
+      box.className = 'result ' + type;
+      box.textContent = message;
+    }
+
+    async function sendScan(qrText) {
       try {
         const r = await fetch(`/api/scan-pontaj/${eventId}`, {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({qr:text})
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qr_text: qrText })
         });
+
         const j = await r.json();
-        alert(j.message || 'OK');
+
+        if (j.success && j.action === 'checkin') {
+          setResult('ok', `${j.message} Ora: ${j.time}`);
+        } else if (j.success && j.action === 'checkout') {
+          setResult('warn', `${j.message} Ora: ${j.time}`);
+        } else {
+          setResult('err', j.message || 'Scanare nereușită.');
+        }
       } catch (e) {
-        alert('Eroare la trimiterea scanării.');
+        setResult('err', 'Eroare la trimiterea scanării.');
+      } finally {
+        busy = false;
       }
     }
 
-    function stopScanner() {
-      try {
-        html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
-      } catch (e) {}
+    async function onScanSuccess(decodedText) {
+      if (busy) return;
+      busy = true;
+      await sendScan(decodedText);
     }
 
-    function onScanSuccess(decodedText) {
-      if (done) return;
-      done = true;
-      stopScanner();
-      sendScan(decodedText);
+    function startScanner() {
+      document.getElementById('result').style.display = 'none';
+      scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
+      scanner.render(onScanSuccess);
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      'reader',
-      { fps: 10, qrbox: 250 },
-      false
-    );
+    function restartScanner() {
+      const reader = document.getElementById('reader');
+      reader.innerHTML = '';
+      busy = false;
+      startScanner();
+    }
 
-    html5QrcodeScanner.render(onScanSuccess);
+    startScanner();
   </script>
 </body>
 </html>

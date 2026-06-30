@@ -998,46 +998,75 @@ def pontaj_bulk(eveniment_id):
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # QR & CHECKIN
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+import qrcode
+import base64
+from models import Pontaj, Confirmare
+
 @app.route('/qr/<int:voluntar_id>')
 @login_required
 @admin_or_teamleader_required
 def qr_voluntar(voluntar_id):
     v = db.session.get(Voluntar, voluntar_id)
-    url = f'http://localhost:5000/checkin/{voluntar_id}'
-    img = qrcode.make(url)
+    if not v:
+        flash('Voluntarul nu a fost găsit.', 'danger')
+        return redirect(url_for('voluntari'))
+
+    qr_text = f"VOLUNTAR:{v.id}"
+    img = qrcode.make(qr_text)
+
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
     img_b64 = base64.b64encode(buf.getvalue()).decode()
-    return render_template('qr.html', v=v, img_b64=img_b64, url=url)
+
+    return render_template('qr.html', v=v, img_b64=img_b64, qr_text=qr_text)
 
 
-@app.route('/checkin/<int:voluntar_id>')
-def checkin_qr(voluntar_id):
+@app.route('/scan/<int:event_id>')
+@login_required
+@admin_or_teamleader_required
+def scan_qr(event_id):
+    e = db.session.get(Eveniment, event_id)
+    if not e:
+        flash('Evenimentul nu a fost găsit.', 'danger')
+        return redirect(url_for('evenimente'))
+
+    return render_template('scan.html', e=e, event_id=event_id)
+
+
+@app.route('/api/scan-pontaj/<int:event_id>', methods=['POST'])
+@login_required
+@admin_or_teamleader_required
+def api_scan_pontaj(event_id):
     from datetime import datetime
-    from models import Eveniment
-    v = db.session.get(Voluntar, voluntar_id)
-    if not v:
-        return 'Voluntar negasit', 404
-    acum = datetime.utcnow()
-    eveniment = Eveniment.query.filter(
-        Eveniment.data >= acum,
-        Eveniment.activ == True
-    ).order_by(Eveniment.data).first()
-    if not eveniment:
-        return render_template('checkin_result.html', v=v,
-                               mesaj='Nu existÄƒ niciun eveniment activ Ã®n acest moment.', ok=False)
-    pontaj_ex = Pontaj.query.filter_by(eveniment_id=eveniment.id, voluntar_id=voluntar_id).first()
-    if pontaj_ex:
-        pontaj_ex.status = 'prezent'
-        pontaj_ex.ora_checkin = acum
-    else:
-        p = Pontaj(voluntar_id=voluntar_id, eveniment_id=eveniment.id,
-                   status='prezent', ora_checkin=acum)
-        db.session.add(p)
-    db.session.commit()
-    return render_template('checkin_result.html', v=v, eveniment=eveniment,
-                           mesaj=f'Check-in reuÈ™it pentru {eveniment.titlu}!', ok=True)
+
+    e = db.session.get(Eveniment, event_id)
+    if not e or not e.activ:
+        return jsonify({
+            'success': False,
+            'action': 'error',
+            'message': 'Eveniment inexistent sau inactiv.'
+        }), 404
+
+    data = request.get_json(silent=True) or {}
+    qr_text = (data.get('qr_text') or '').strip()
+
+    if not qr_text:
+        return jsonify({
+            'success': False,
+            'action': 'error',
+            'message': 'Cod QR gol sau invalid.'
+        }), 400
+
+    if not qr_text.startswith('VOLUNTAR:'):
+        return jsonify({
+            'success': False,
+            'action': 'error',
+            'message': 'Format QR invalid.'
+        }), 400
+
+    try:
+        voluntar_id = int(qr_text.split(':', 1)[1]
 
 
 @app.route('/departamente')
