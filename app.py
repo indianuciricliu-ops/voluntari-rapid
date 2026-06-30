@@ -470,6 +470,10 @@ def eveniment_detalii(id):
     ).first()
 
     pontaje = Pontaj.query.filter_by(eveniment_id=id).all()
+    for p in pontaje:
+        p.ora_checkin = to_local(p.ora_checkin)
+        p.ora_checkout = to_local(p.ora_checkout)
+
     prezenti = [p for p in pontaje if p.status == 'prezent']
     toti_voluntarii = Voluntar.query.filter_by(activ=True).all()
 
