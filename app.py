@@ -1066,7 +1066,13 @@ def api_scan_pontaj(event_id):
         }), 400
 
     try:
-        voluntar_id = int(qr_text.split(':', 1)[1]
+        voluntar_id = int(qr_text.split(':', 1)[1])
+    except (ValueError, IndexError):
+        return jsonify({
+            'success': False,
+            'action': 'error',
+            'message': 'Format QR invalid.'
+        }), 400
 
 
 @app.route('/departamente')
