@@ -37,60 +37,70 @@
   </div>
 
   <script>
-    const eventId = {{ event_id }};
-    let scanner = null;
-    let busy = false;
+  const eventId = {{ event_id }};
+  let scanner = null;
+  let busy = false;
+  let lastText = '';
 
-    function setResult(type, message) {
-      const box = document.getElementById('result');
-      box.className = 'result ' + type;
-      box.textContent = message;
-    }
+  function setResult(type, message) {
+    const box = document.getElementById('result');
+    box.className = 'result ' + type;
+    box.style.display = 'block';
+    box.textContent = message;
+  }
 
-    async function sendScan(qrText) {
-      try {
-        const r = await fetch(`/api/scan-pontaj/${eventId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qr_text: qrText })
-        });
+  async function sendScan(qrText) {
+    try {
+      const r = await fetch(`/api/scan-pontaj/${eventId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_text: qrText })
+      });
 
-        const j = await r.json();
+      const j = await r.json();
 
-        if (j.success && j.action === 'checkin') {
-          setResult('ok', `${j.message} Ora: ${j.time}`);
-        } else if (j.success && j.action === 'checkout') {
-          setResult('warn', `${j.message} Ora: ${j.time}`);
-        } else {
-          setResult('err', j.message || 'Scanare nereușită.');
-        }
-      } catch (e) {
-        setResult('err', 'Eroare la trimiterea scanării.');
-      } finally {
-        busy = false;
+      if (j.success && j.action === 'checkin') {
+        setResult('ok', `${j.message} Ora: ${j.time}`);
+      } else if (j.success && j.action === 'checkout') {
+        setResult('warn', `${j.message} Ora: ${j.time}`);
+      } else {
+        setResult('err', j.message || 'Scanare nereușită.');
       }
-    }
 
-    async function onScanSuccess(decodedText) {
-      if (busy) return;
-      busy = true;
-      await sendScan(decodedText);
-    }
-
-    function startScanner() {
-      document.getElementById('result').style.display = 'none';
-      scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
-      scanner.render(onScanSuccess);
-    }
-
-    function restartScanner() {
-      const reader = document.getElementById('reader');
-      reader.innerHTML = '';
+      if (scanner) {
+        try { await scanner.clear(); } catch (e) {}
+        scanner = null;
+      }
+    } catch (e) {
+      setResult('err', 'Eroare la trimiterea scanării.');
+    } finally {
       busy = false;
-      startScanner();
     }
+  }
 
+  async function onScanSuccess(decodedText) {
+    if (busy) return;
+    if (!decodedText || decodedText === lastText) return;
+    busy = true;
+    lastText = decodedText;
+    await sendScan(decodedText);
+  }
+
+  function startScanner() {
+    document.getElementById('result').style.display = 'none';
+    scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
+    scanner.render(onScanSuccess);
+  }
+
+  function restartScanner() {
+    const reader = document.getElementById('reader');
+    reader.innerHTML = '';
+    busy = false;
+    lastText = '';
     startScanner();
-  </script>
+  }
+
+  startScanner();
+</script>
 </body>
 </html>
