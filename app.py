@@ -5,6 +5,7 @@ from models import db, Voluntar, Eveniment, Alocare
 from werkzeug.security import generate_password_hash, check_password_hash
 from pywebpush import webpush, WebPushException
 from functools import wraps
+from zoneinfo import ZoneInfo
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -60,6 +61,7 @@ def admin_or_teamleader_required(f):
 def index():
     from models import Pontaj, Eveniment
     from datetime import datetime
+    from zoneinfo import ZoneInfo
     from sqlalchemy import func
 
     acum = datetime.now()
@@ -513,9 +515,12 @@ def eveniment_confirma(id):
         ).first()
 
         if confirmare:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
             confirmare.raspuns = raspuns
             confirmare.ora_sosire = ora_sosire
-            confirmare.data_raspuns = datetime.utcnow()
+            confirmare.data_raspuns = datetime.now(ZoneInfo("Europe/Bucharest"))
         else:
             confirmare = Confirmare(
                 voluntar_id=current_user.id,
@@ -559,7 +564,7 @@ def eveniment_alocare(id):
     if alocare:
         alocare.departament = departament
         alocare.este_teamleader = este_teamleader
-        alocare.data_alocare = datetime.utcnow()
+        alocare.data_alocare = datetime.now(ZoneInfo("Europe/Bucharest"))
     else:
         alocare = Alocare(
             voluntar_id=voluntar_id,
@@ -958,13 +963,15 @@ def pontaj_marcheaza(eveniment_id):
     if pontaj_ex:
         pontaj_ex.status = status
         if status == 'prezent' and not pontaj_ex.ora_checkin:
-            pontaj_ex.ora_checkin = datetime.utcnow()
+            from zoneinfo import ZoneInfo
+            pontaj_ex.ora_checkin = datetime.now(ZoneInfo("Europe/Bucharest"))
     else:
+        from zoneinfo import ZoneInfo
         p = Pontaj(
             voluntar_id=voluntar_id,
             eveniment_id=eveniment_id,
             status=status,
-            ora_checkin=datetime.utcnow() if status == 'prezent' else None
+            ora_checkin=datetime.now(ZoneInfo("Europe/Bucharest")) if status == 'prezent' else None
         )
         db.session.add(p)
     db.session.commit()
@@ -987,7 +994,7 @@ def pontaj_bulk(eveniment_id):
                 voluntar_id=v.id,
                 eveniment_id=eveniment_id,
                 status=status,
-                ora_checkin=datetime.utcnow() if status == 'prezent' else None
+                ora_checkin=datetime.now(ZoneInfo("Europe/Bucharest")) if status == 'prezent' else None
             )
             db.session.add(p)
     db.session.commit()
