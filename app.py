@@ -430,6 +430,14 @@ def pontaj_bulk(eveniment_id):
     flash('Pontaj salvat cu succes!', 'success')
     return redirect(url_for('eveniment_detalii', id=eveniment_id))
 
+@app.route('/evenimente')
+@login_required
+def evenimente():
+    acum = datetime.utcnow()
+    viitoare = Eveniment.query.filter(Eveniment.data >= acum, Eveniment.activ == True).order_by(Eveniment.data).all()
+    trecute = Eveniment.query.filter(Eveniment.data < acum, Eveniment.activ == True).order_by(Eveniment.data.desc()).limit(10).all()
+    return render_template('evenimente.html', viitoare=viitoare, trecute=trecute)
+
 @app.route('/qr/<int:voluntar_id>')
 @login_required
 @admin_or_teamleader_required
