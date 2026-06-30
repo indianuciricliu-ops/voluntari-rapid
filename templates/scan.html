@@ -57,7 +57,24 @@
         body: JSON.stringify({ qr_text: qrText })
       });
 
-      const j = await r.json();
+      let j = null;
+      try {
+        j = await r.json();
+      } catch (e) {
+        setResult('err', 'Serverul a răspuns, dar nu a trimis JSON valid.');
+        busy = false;
+        return;
+      }
+
+      if (!r.ok) {
+        setResult('err', j.message || `Eroare server ${r.status}.`);
+        if (scanner) {
+          try { await scanner.clear(); } catch (e) {}
+          scanner = null;
+        }
+        busy = false;
+        return;
+      }
 
       if (j.success && j.action === 'checkin') {
         setResult('ok', `${j.message} Ora: ${j.time}`);
