@@ -57,14 +57,31 @@
     </div>
     <div class="table-responsive mt-3">
       <table class="table table-sm align-middle">
-        <thead><tr><th>Eveniment</th><th>Data</th><th>Status</th><th>Check-in</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Eveniment</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Check-in</th>
+            <th>Check-out</th>
+          </tr>
+        </thead>
         <tbody>
         {% for pontaj, ev in selected_hist %}
           <tr>
             <td>{{ ev.titlu }}</td>
             <td>{{ ev.data.strftime('%d.%m.%Y %H:%M') if ev.data else '' }}</td>
-            <td>{% if pontaj.status == 'prezent' %}<span class="badge bg-success">Prezent</span>{% else %}<span class="badge bg-danger">Absent</span>{% endif %}</td>
+            <td>
+              {% if pontaj.status == 'prezent' %}
+                <span class="badge bg-success">Prezent</span>
+              {% elif pontaj.status == 'intarziat' %}
+                <span class="badge bg-warning text-dark">Întârziat</span>
+              {% else %}
+                <span class="badge bg-danger">Absent</span>
+              {% endif %}
+            </td>
             <td>{{ pontaj.ora_checkin.strftime('%d.%m.%Y %H:%M') if pontaj.ora_checkin else '-' }}</td>
+            <td>{{ pontaj.ora_checkout.strftime('%d.%m.%Y %H:%M') if pontaj.ora_checkout else '-' }}</td>
           </tr>
         {% endfor %}
         </tbody>

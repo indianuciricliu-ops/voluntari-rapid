@@ -62,7 +62,7 @@ def index():
     from datetime import datetime
     from sqlalchemy import func
 
-    acum = datetime.utcnow()
+    acum = datetime.now()
     total_voluntari = Voluntar.query.filter_by(activ=True).count()
     total_evenimente = Eveniment.query.filter_by(activ=True).count()
     evenimente_viitoare = Eveniment.query.filter(
@@ -385,7 +385,7 @@ def voluntar_dezactiveaza(id):
 @login_required
 def evenimente():
     from datetime import datetime
-    acum = datetime.utcnow()
+    acum = datetime.now()
     viitoare = Eveniment.query.filter(Eveniment.data >= acum, Eveniment.activ == True)\
                               .order_by(Eveniment.data).all()
     trecute = Eveniment.query.filter(Eveniment.data < acum, Eveniment.activ == True)\
@@ -1057,7 +1057,7 @@ def api_scan_pontaj(event_id):
         if not v or not v.activ:
             return jsonify(success=False, action='error', message='Voluntarul nu există sau este inactiv.'), 404
 
-        acum = datetime.utcnow()
+        acum = datetime.now()
         pontaj = Pontaj.query.filter_by(eveniment_id=event_id, voluntar_id=voluntar_id).first()
 
         if not pontaj:

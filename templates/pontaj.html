@@ -9,7 +9,7 @@
     body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
     .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
     .topbar h1 { font-size:18px; font-weight:800; }
-    .nav-links { display:flex; gap:16px; }
+    .nav-links { display:flex; gap:16px; flex-wrap:wrap; }
     .nav-links a { color:#ffcdd2; font-size:14px; text-decoration:none; font-weight:600; }
     .main { padding:28px; }
     .event-banner { background:linear-gradient(135deg,#6b0018,#8e1231); color:#fff; border-radius:16px; padding:20px 24px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
@@ -21,6 +21,7 @@
     .stat-pill .lbl { font-size:12px; color:#888; margin-top:2px; }
     .num-prezent { color:#155724; }
     .num-absent { color:#721c24; }
+    .num-intarziat { color:#856404; }
     .num-total { color:#6b0018; }
     .section-title { font-size:16px; font-weight:800; margin:18px 0 8px; }
     .section-sub { font-size:13px; color:#888; margin-bottom:8px; }
@@ -33,7 +34,7 @@
     .avatar { width:40px; height:40px; border-radius:50%; background:#f0eef0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#6b0018; flex-shrink:0; }
     .vol-name { font-weight:700; font-size:15px; }
     .vol-meta { font-size:12px; color:#aaa; }
-    .btn-group { display:flex; gap:6px; }
+    .btn-group { display:flex; gap:6px; flex-wrap:wrap; }
     .btn-status { padding:8px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:2px solid transparent; transition:all .15s; }
     .btn-prezent { background:#d4edda; color:#155724; border-color:#d4edda; }
     .btn-prezent:hover, .btn-prezent.activ { background:#28a745; color:#fff; border-color:#28a745; }
@@ -41,7 +42,7 @@
     .btn-absent:hover, .btn-absent.activ { background:#dc3545; color:#fff; border-color:#dc3545; }
     .btn-intarziat { background:#fff3cd; color:#856404; border-color:#fff3cd; }
     .btn-intarziat:hover, .btn-intarziat.activ { background:#ffc107; color:#333; border-color:#ffc107; }
-    .checkin-time { font-size:12px; color:#888; margin-top:4px; }
+    .checkin-time { font-size:12px; color:#888; margin-top:4px; line-height:1.4; }
     .btn { padding:10px 18px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
     .btn-primary { background:#6b0018; color:#fff; }
     .btn-success { background:#28a745; color:#fff; }
@@ -57,8 +58,10 @@
     <a href="{{ url_for('evenimente') }}">Evenimente</a>
   </div>
 </div>
+
 <div class="main">
   <input type="hidden" id="eveniment-id" value="{{ e.id }}">
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
       <div class="alert alert-{{ category }}">{{ message }}</div>
@@ -68,8 +71,7 @@
   <div class="event-banner">
     <div>
       <h2>{{ e.titlu }}</h2>
-      <p>📆 {{ e.data.strftime('%d %B %Y, %H:%M') }}
-      {% if e.locatie %} · 📍 {{ e.locatie }}{% endif %}</p>
+      <p>📆 {{ e.data.strftime('%d %B %Y, %H:%M') }}{% if e.locatie %} · 📍 {{ e.locatie }}{% endif %}</p>
     </div>
     <form method="POST" action="{{ url_for('pontaj_bulk', eveniment_id=e.id) }}" id="formBulk">
       <button type="submit" class="btn btn-success">💾 Salvează tot pontajul</button>
@@ -86,7 +88,6 @@
     <div class="stat-pill"><div class="num" style="color:#aaa;" id="statNemarcat">{{ total }}</div><div class="lbl">Nemarcați</div></div>
   </div>
 
-  <!-- CONFIRMAȚI (VIN) -->
   <h3 class="section-title">✅ Voluntari confirmați (Vin)</h3>
   <p class="section-sub">Cei care au răspuns că vin la meci.</p>
   {% if confirmati %}
@@ -101,6 +102,7 @@
           <div class="vol-meta">{{ v.departament or 'Fără departament' }} · {{ v.email }}</div>
           <div class="checkin-time" id="time-{{ v.id }}">
             {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
+            {% if p and p.ora_checkout %}<br>🚪 Check-out: {{ p.ora_checkout.strftime('%H:%M') }}{% endif %}
           </div>
         </div>
       </div>
@@ -108,11 +110,11 @@
         <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
                {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
         <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
+                onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
         <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'intarziat', this)">⏰ Întârziat</button>
+                onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
         <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'absent', this)">❌ Absent</button>
+                onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
       </div>
     </div>
     {% endfor %}
@@ -120,7 +122,6 @@
     <p style="color:#aaa; font-size:14px;">Niciun voluntar confirmat încă.</p>
   {% endif %}
 
-  <!-- POATE -->
   <h3 class="section-title">🤔 Voluntari cu răspuns „Poate”</h3>
   <p class="section-sub">Voluntari nehotărâți, dar pe care îi poți marca prezenți dacă apar.</p>
   {% if poate %}
@@ -135,6 +136,7 @@
           <div class="vol-meta">{{ v.departament or 'Fără departament' }} · {{ v.email }}</div>
           <div class="checkin-time" id="time-{{ v.id }}">
             {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
+            {% if p and p.ora_checkout %}<br>🚪 Check-out: {{ p.ora_checkout.strftime('%H:%M') }}{% endif %}
           </div>
         </div>
       </div>
@@ -142,11 +144,11 @@
         <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
                {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
         <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
+                onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
         <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'intarziat', this)">⏰ Întârziat</button>
+                onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
         <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'absent', this)">❌ Absent</button>
+                onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
       </div>
     </div>
     {% endfor %}
@@ -154,7 +156,6 @@
     <p style="color:#aaa; font-size:14px;">Niciun voluntar cu răspuns „Poate”.</p>
   {% endif %}
 
-  <!-- NEVOTAȚI + NU VIN -->
   <h3 class="section-title">⚪ Nevotați și cei care au spus „Nu vin”</h3>
   <p class="section-sub">Dacă apar totuși la stadion, îi poți marca „prezent”.</p>
   {% if nevotati_sau_nu_vin %}
@@ -169,6 +170,7 @@
           <div class="vol-meta">{{ v.departament or 'Fără departament' }} · {{ v.email }}</div>
           <div class="checkin-time" id="time-{{ v.id }}">
             {% if p and p.ora_checkin %}✅ Check-in: {{ p.ora_checkin.strftime('%H:%M') }}{% endif %}
+            {% if p and p.ora_checkout %}<br>🚪 Check-out: {{ p.ora_checkout.strftime('%H:%M') }}{% endif %}
           </div>
         </div>
       </div>
@@ -176,11 +178,11 @@
         <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
                {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
         <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'prezent', this)">✅ Prezent</button>
+                onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
         <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'intarziat', this)">⏰ Întârziat</button>
+                onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
         <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
-                onclick="marcheaza({{ v.id }}, 'absent', this)">❌ Absent</button>
+                onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
       </div>
     </div>
     {% endfor %}
