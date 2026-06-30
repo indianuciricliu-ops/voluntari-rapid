@@ -5,7 +5,9 @@ from models import db, Voluntar, Eveniment, Alocare
 from werkzeug.security import generate_password_hash, check_password_hash
 from pywebpush import webpush, WebPushException
 from functools import wraps
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+TZ = ZoneInfo("Europe/Bucharest")
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -24,6 +26,12 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Trebuie sa te autentifici pentru a accesa aceasta pagina.'
 
+def to_local(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc).astimezone(TZ)
+    return dt.astimezone(TZ)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -779,17 +787,8 @@ def statistici():
             'rata': rata
         })
 
-    top_voluntari = sorted(
-        voluntari_rank,
-        key=lambda x: (x['rata'], x['prezente']),
-        reverse=True
-    )[:10]
-
-    cei_mai_multe_absente = sorted(
-        voluntari_rank,
-        key=lambda x: (x['absente'], -x['rata']),
-        reverse=True
-    )[:10]
+    top_voluntari = sorted(voluntari_rank, key=lambda x: (x['rata'], x['prezente']), reverse=True)[:10]
+    cei_mai_multe_absente = sorted(voluntari_rank, key=lambda x: (x['absente'], -x['rata']), reverse=True)[:10]
 
     evenimente_stats = db.session.query(
         Eveniment.id,
@@ -818,17 +817,8 @@ def statistici():
             'rata': rata
         })
 
-    top_evenimente = sorted(
-        evenimente_rank,
-        key=lambda x: (x['rata'], x['prezente']),
-        reverse=True
-    )[:10]
-
-    evenimente_cu_cele_mai_multe_absente = sorted(
-        evenimente_rank,
-        key=lambda x: (x['absente'], -x['rata']),
-        reverse=True
-    )[:10]
+    top_evenimente = sorted(evenimente_rank, key=lambda x: (x['rata'], x['prezente']), reverse=True)[:10]
+    evenimente_cu_cele_mai_multe_absente = sorted(evenimente_rank, key=lambda x: (x['absente'], -x['rata']), reverse=True)[:10]
 
     departamente_stats = db.session.query(
         Voluntar.departament,
@@ -847,7 +837,7 @@ def statistici():
         total_p = prez + absn
         rata = round((prez / total_p * 100), 1) if total_p else 0
         dept_rows.append({
-            'departament': d.departament or 'FÄƒrÄƒ departament',
+            'departament': d.departament or 'Fără departament',
             'voluntari': tot,
             'prezente': prez,
             'absente': absn,
@@ -865,14 +855,21 @@ def statistici():
             .filter(Pontaj.voluntar_id == selected_voluntar.id)\
             .order_by(Eveniment.data.desc()).all()
 
-        p = sum(1 for x, _ in selected_hist if x.status == 'prezent')
+        selected_hist = [
+            (p, ev) for p, ev in selected_hist
+        ]
+        for p, ev in selected_hist:
+            p.ora_checkin = to_local(p.ora_checkin)
+            p.ora_checkout = to_local(p.ora_checkout)
+
+        pz = sum(1 for x, _ in selected_hist if x.status == 'prezent')
         a = sum(1 for x, _ in selected_hist if x.status == 'absent')
         t = len(selected_hist)
         selected_tot = {
-            'prezente': p,
+            'prezente': pz,
             'absente': a,
             'total': t,
-            'rata': round((p / t * 100), 1) if t else 0
+            'rata': round((pz / t * 100), 1) if t else 0
         }
 
     recent_voluntari = Voluntar.query.filter_by(activ=True).order_by(Voluntar.nume, Voluntar.prenume).all()
@@ -921,6 +918,10 @@ def pontaj(eveniment_id):
     pontaje_existente = {
         p.voluntar_id: p for p in Pontaj.query.filter_by(eveniment_id=eveniment_id).all()
     }
+    for p in pontaje_existente.values():
+        p.ora_checkin = to_local(p.ora_checkin)
+        p.ora_checkout = to_local(p.ora_checkout)
+
     pontaje_json = {
         p.voluntar_id: p.status for p in Pontaj.query.filter_by(eveniment_id=eveniment_id).all()
     }
