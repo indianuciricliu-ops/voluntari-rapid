@@ -37,7 +37,7 @@ class Eveniment(db.Model):
     tip = db.Column(db.String(50))
     descriere = db.Column(db.Text)
     activ = db.Column(db.Boolean, default=True)
-
+    qr_token = db.Column(db.String(64), unique=True, nullable=True)
     pontaje = db.relationship('Pontaj', backref='eveniment', lazy=True)
     confirmari = db.relationship('Confirmare', backref='eveniment', lazy=True)
     alocari = db.relationship('Alocare', backref='eveniment', lazy=True)

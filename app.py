@@ -1,3 +1,5 @@
+import secrets
+
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
@@ -176,8 +178,8 @@ def trimite_push_reminder_eveniment(eveniment_id):
                     "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
                 },
                 data=json.dumps({
-                    "title": "Reminder eveniment ðŸ”´âšª",
-                    "body": f"Te rugÄƒm sÄƒ confirmi dacÄƒ vii la: {e.titlu}",
+                    "title": "Reminder eveniment nou",
+                    "body": f"Te rugăm să confirmi dacă vii la: {e.titlu}",
                     "url": f"/evenimente/{e.id}"
                 }),
                 vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
@@ -187,7 +189,7 @@ def trimite_push_reminder_eveniment(eveniment_id):
         except WebPushException as err:
             app.logger.warning(f"Push reminder error pentru {sub.endpoint}: {err}")
         except Exception as err:
-            app.logger.warning(f"Push reminder altÄƒ eroare: {err}")
+            app.logger.warning(f"Push reminder altă eroare: {err}")
 
     return trimise
 
@@ -216,7 +218,7 @@ def login():
 
             return redirect(url_for('index'))
         else:
-            flash('Email sau parola gresite.', 'danger')
+            flash('Email sau parolă greșite.', 'danger')
 
     return render_template('login.html')
 
@@ -237,7 +239,7 @@ def schimba_parola():
         confirmare = (request.form.get('confirmare') or '').strip()
 
         if not parola_noua or not confirmare:
-            flash('CompleteazÄƒ toate cÃ¢mpurile.', 'danger')
+            flash('Completează toate câmpurile.', 'danger')
             return redirect(url_for('schimba_parola'))
 
         if parola_noua != confirmare:
@@ -248,7 +250,7 @@ def schimba_parola():
         current_user.must_change_password = False
         db.session.commit()
 
-        flash('Parola a fost schimbatÄƒ cu succes.', 'success')
+        flash('Parola a fost schimbată cu succes.', 'success')
         return redirect(url_for('index'))
 
     return render_template('schimba_parola.html')
@@ -326,7 +328,7 @@ def voluntar_profil(id):
     from models import Pontaj, Eveniment
     v = db.session.get(Voluntar, id)
     if not v:
-        flash('Voluntarul nu a fost gasit.', 'danger')
+        flash('Voluntarul nu a fost găsit.', 'danger')
         return redirect(url_for('voluntari'))
     pontaje = Pontaj.query.filter_by(voluntar_id=id).all()
     total = len(pontaje)
@@ -343,7 +345,7 @@ def voluntar_editeaza(id):
 
     v = db.session.get(Voluntar, id)
     if not v:
-        flash('Voluntarul nu a fost gasit.', 'danger')
+        flash('Voluntarul nu a fost găsit.', 'danger')
         return redirect(url_for('voluntari'))
 
     if request.method == 'POST':
@@ -359,7 +361,7 @@ def voluntar_editeaza(id):
 
         if parola_noua or confirmare_parola:
             if not parola_noua or not confirmare_parola:
-                flash('CompleteazÄƒ ambele cÃ¢mpuri de parolÄƒ.', 'danger')
+                flash('Completează ambele câmpuri de parolă.', 'danger')
                 return redirect(url_for('voluntar_editeaza', id=id))
 
             if parola_noua != confirmare_parola:
@@ -391,6 +393,45 @@ def voluntar_dezactiveaza(id):
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # EVENIMENTE
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+
+@app.route('/api/scan-prezenta', methods=['POST'])
+@login_required
+def api_scan_prezenta():
+    from models import Pontaj, Eveniment
+
+    data = request.get_json(force=True)
+    token = data.get('token')
+
+    eveniment = Eveniment.query.filter_by(qr_token=token, activ=True).first()
+    if not eveniment:
+        return jsonify({'status': 'error', 'message': 'QR invalid sau eveniment inexistent.'}), 400
+
+    acum = datetime.now(TZ)
+
+    pontaj = Pontaj.query.filter_by(
+        eveniment_id=eveniment.id,
+        voluntar_id=current_user.id
+    ).first()
+
+    if not pontaj:
+        pontaj = Pontaj(
+            eveniment_id=eveniment.id,
+            voluntar_id=current_user.id,
+            status='prezent',
+            ora_checkin=acum
+        )
+        db.session.add(pontaj)
+        db.session.commit()
+        return jsonify({'status': 'ok', 'action': 'checkin', 'message': f'Check-in înregistrat la {acum.strftime("%H:%M")}'})
+
+    if pontaj.ora_checkin and not pontaj.ora_checkout:
+        pontaj.ora_checkout = acum
+        db.session.commit()
+        return jsonify({'status': 'ok', 'action': 'checkout', 'message': f'Check-out înregistrat la {acum.strftime("%H:%M")}'})
+
+    return jsonify({'status': 'info', 'action': 'none', 'message': 'Ai deja check-in și check-out înregistrate pentru acest eveniment.'})
+
 @app.route('/evenimente')
 @login_required
 def evenimente():
@@ -422,6 +463,7 @@ def eveniment_nou():
             tip=request.form.get('tip', ''),
             descriere=request.form.get('descriere', '')
         )
+        e.qr_token = secrets.token_urlsafe(16)
         db.session.add(e)
         db.session.commit()
 
@@ -436,7 +478,7 @@ def eveniment_nou():
                         "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
                     },
                     data=json.dumps({
-                        "title": "Eveniment nou! ðŸ”´âšª",
+                        "title": "Eveniment nou!",
                         "body": f"A fost adaugat: {e.titlu}",
                         "url": "/evenimente"
                     }),
@@ -457,9 +499,12 @@ def eveniment_detalii(id):
     from models import Pontaj, Confirmare, Alocare
     e = db.session.get(Eveniment, id)
     if not e:
-        flash('Evenimentul nu a fost gasit.', 'danger')
+        flash('Evenimentul nu a fost găsit.', 'danger')
         return redirect(url_for('evenimente'))
-
+        import secrets
+    if not e.qr_token:
+        e.qr_token = secrets.token_urlsafe(16)
+        db.session.commit()
     confirmari = Confirmare.query.filter_by(eveniment_id=id).all()
     disponibili = [c for c in confirmari if c.raspuns == 'vin']
     indisponibili = [c for c in confirmari if c.raspuns == 'nu_vin']
@@ -504,6 +549,24 @@ def eveniment_detalii(id):
     )
 
 
+@app.route("/evenimente/<int:id>/qr")
+@login_required
+def eveniment_qr(id):
+    e = db.session.get(Eveniment, id)
+    if not e or not e.qr_token:
+        flash("Eveniment invalid.", "danger")
+        return redirect(url_for("evenimente"))
+
+    import qrcode
+    import io
+    from flask import send_file
+
+    img = qrcode.make(e.qr_token)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png")
+
 @app.route('/evenimente/<int:id>/confirma', methods=['POST'])
 @login_required
 def eveniment_confirma(id):
@@ -519,7 +582,7 @@ def eveniment_confirma(id):
         app.logger.info(f"CONFIRMARE raspuns={raspuns}, ora_sosire={ora_sosire}")
 
         if raspuns not in ['vin', 'nu_vin', 'poate']:
-            flash('RÄƒspuns invalid.', 'danger')
+            flash('Răspuns invalid.', 'danger')
             return redirect(url_for('eveniment_detalii', id=id))
 
         confirmare = Confirmare.query.filter_by(
@@ -543,13 +606,13 @@ def eveniment_confirma(id):
             db.session.add(confirmare)
 
         db.session.commit()
-        flash('RÄƒspunsul tÄƒu a fost salvat!', 'success')
+        flash('Răspunsul tău a fost salvat!', 'success')
         return redirect(url_for('eveniment_detalii', id=id))
 
     except Exception:
         db.session.rollback()
         app.logger.exception("EROARE LA CONFIRMARE")
-        flash('A apÄƒrut o eroare la salvarea confirmÄƒrii.', 'danger')
+        flash('A apărut o eroare la salvarea confirmării.', 'danger')
         return redirect(url_for('eveniment_detalii', id=id))
 
 
@@ -564,7 +627,7 @@ def eveniment_alocare(id):
     departament = (request.form.get('departament') or '').strip()
 
     if not voluntar_id or not departament:
-        flash('SelecteazÄƒ un voluntar È™i un departament.', 'danger')
+        flash('Selectează un voluntar și un departament.', 'danger')
         return redirect(url_for('eveniment_detalii', id=id))
 
     alocare = Alocare.query.filter_by(
@@ -587,7 +650,7 @@ def eveniment_alocare(id):
         db.session.add(alocare)
 
     db.session.commit()
-    flash('Alocarea a fost salvatÄƒ.', 'success')
+    flash('Alocarea a fost salvată.', 'success')
     return redirect(url_for('eveniment_detalii', id=id))
 
 
@@ -629,9 +692,9 @@ def eveniment_anuleaza(id):
 def eveniment_trimite_reminder(id):
     numar = trimite_push_reminder_eveniment(id)
     if numar > 0:
-        flash(f'Reminder trimis cÄƒtre {numar} voluntari care nu au votat.', 'success')
+        flash(f'Reminder trimis către {numar} voluntari care nu au votat.', 'success')
     else:
-        flash('Nu existÄƒ voluntari fÄƒrÄƒ rÄƒspuns pentru acest eveniment sau nu au subscription PWA.', 'info')
+        flash('Nu există voluntari fără răspuns pentru acest eveniment sau nu au subscription PWA.', 'info')
     return redirect(url_for('eveniment_detalii', id=id))
 
 
@@ -1139,7 +1202,7 @@ def departament_nou():
 
     existing = Departament.query.filter_by(nume=nume).first()
     if existing:
-        flash('ExistÄƒ deja un departament cu acest nume.', 'danger')
+        flash('Există deja un departament cu acest nume.', 'danger')
         return redirect(url_for('departamente_view'))
 
     d = Departament(nume=nume, descriere=descriere)
@@ -1157,7 +1220,7 @@ def departament_editeaza(id):
 
     d = db.session.get(Departament, id)
     if not d:
-        flash('Departamentul nu existÄƒ.', 'danger')
+        flash('Departamentul nu există.', 'danger')
         return redirect(url_for('departamente_view'))
 
     nume = (request.form.get('nume') or '').strip()
@@ -1183,12 +1246,12 @@ def departament_teamleader_adauga(id):
     voluntar_id = int(request.form.get('voluntar_id', 0))
 
     if not voluntar_id:
-        flash('SelecteazÄƒ un teamleader.', 'danger')
+        flash('Selectează un teamleader.', 'danger')
         return redirect(url_for('departamente_view'))
 
     d = db.session.get(Departament, id)
     if not d:
-        flash('Departamentul nu existÄƒ.', 'danger')
+        flash('Departamentul nu există.', 'danger')
         return redirect(url_for('departamente_view'))
 
     v = db.session.get(Voluntar, voluntar_id)
@@ -1206,7 +1269,7 @@ def departament_teamleader_adauga(id):
     rel = DepartamentTeamleader(departament_id=id, voluntar_id=voluntar_id)
     db.session.add(rel)
     db.session.commit()
-    flash('Teamleader adÄƒugat la departament.', 'success')
+    flash('Teamleader adăugat la departament.', 'success')
     return redirect(url_for('departamente_view'))
 
 
@@ -1222,7 +1285,7 @@ def departament_teamleader_sterge(id):
         departament_id=id, voluntar_id=voluntar_id
     ).first()
     if not rel:
-        flash('AceastÄƒ alocare nu existÄƒ.', 'danger')
+        flash('Această alocare nu există.', 'danger')
         return redirect(url_for('departamente_view'))
 
     db.session.delete(rel)
