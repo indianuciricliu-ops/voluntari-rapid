@@ -315,14 +315,12 @@
       <a href="{{ url_for('pontaj', eveniment_id=e.id) }}"
          style="background:#6b0018; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
         ▶ Deschide pontaj live
-      </a>
-      <a href="{{ url_for('scan_qr', event_id=e.id) }}" class="btn btn-primary">
-    Scan QR
+  {% if current_user.is_authenticated %}
+<a href="{{ url_for('scan_qr', event_id=e.id) }}" class="btn btn-primary">
+  Scan QR
 </a>
-      <a href="{{ url_for('eveniment_qr', id=e.id) }}"
-     style="background:#198754; color:#fff; padding:9px 16px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:700;">
-    Scanează QR
-  </a>
+{% endif %}
+
     </div>
     {% if pontaje %}
     <table>
