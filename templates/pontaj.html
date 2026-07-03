@@ -48,6 +48,25 @@
     .btn-success { background:#28a745; color:#fff; }
     .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
     .alert-success { background:#d4edda; color:#155724; }
+
+    .scan-box {
+      margin-top: 18px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media(max-width:768px){
+      .main { padding:16px; }
+      .event-banner { padding:16px; }
+      .vol-card { align-items:flex-start; }
+    }
   </style>
 </head>
 <body>
@@ -73,9 +92,12 @@
       <h2>{{ e.titlu }}</h2>
       <p>📆 {{ e.data.strftime('%d %B %Y, %H:%M') }}{% if e.locatie %} · 📍 {{ e.locatie }}{% endif %}</p>
     </div>
-    <form method="POST" action="{{ url_for('pontaj_bulk', eveniment_id=e.id) }}" id="formBulk">
-      <button type="submit" class="btn btn-success">💾 Salvează tot pontajul</button>
-    </form>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <form method="POST" action="{{ url_for('pontaj_bulk', eveniment_id=e.id) }}" id="formBulk">
+        <button type="submit" class="btn btn-success">💾 Salvează tot pontajul</button>
+      </form>
+      <a href="{{ url_for('scan_qr', event_id=e.id) }}" class="btn btn-primary">📷 Scan QR</a>
+    </div>
   </div>
 
   {% set total = confirmati|length + poate|length + nevotati_sau_nu_vin|length %}
@@ -107,14 +129,10 @@
         </div>
       </div>
       <div class="btn-group">
-        <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
-               {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
-        <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
-        <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
-        <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
+        <input type="hidden" id="inp-{{ v.id }}" form="formBulk" name="prezenti" value="{{ v.id }}">
+        <button type="button" class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
+        <button type="button" class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
+        <button type="button" class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
       </div>
     </div>
     {% endfor %}
@@ -141,14 +159,10 @@
         </div>
       </div>
       <div class="btn-group">
-        <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
-               {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
-        <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
-        <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
-        <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
+        <input type="hidden" id="inp-{{ v.id }}" form="formBulk" name="prezenti" value="{{ v.id }}">
+        <button type="button" class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
+        <button type="button" class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
+        <button type="button" class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
       </div>
     </div>
     {% endfor %}
@@ -175,14 +189,10 @@
         </div>
       </div>
       <div class="btn-group">
-        <input type="hidden" id="inp-{{ v.id }}" form="formBulk"
-               {% if status_curent == 'prezent' %}name="prezenti" value="{{ v.id }}"{% endif %}>
-        <button class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
-        <button class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
-        <button class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}"
-                onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
+        <input type="hidden" id="inp-{{ v.id }}" form="formBulk" name="prezenti" value="{{ v.id }}">
+        <button type="button" class="btn-status btn-prezent {% if status_curent == 'prezent' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'prezent', this)">✅ Prezent</button>
+        <button type="button" class="btn-status btn-intarziat {% if status_curent == 'intarziat' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'intarziat', this)">⏰ Întârziat</button>
+        <button type="button" class="btn-status btn-absent {% if status_curent == 'absent' %}activ{% endif %}" onclick="marcheaza('{{ v.id }}', 'absent', this)">❌ Absent</button>
       </div>
     </div>
     {% endfor %}
@@ -192,7 +202,7 @@
 </div>
 
 <script>
-  var statusMap = {{ pontaje_json | tojson | safe }};
+  var statusMap = {{ pontaje_json | default({}) | tojson | safe }};
   var eventId = document.getElementById('eveniment-id').value;
 
   function actualizeazaStats() {
@@ -212,26 +222,34 @@
 
   function marcheaza(voluntarId, status, btn) {
     var card = document.getElementById('card-' + voluntarId);
+    if (!card) return;
+
     card.className = 'vol-card ' + status;
     card.querySelectorAll('.btn-status').forEach(function(b){ b.classList.remove('activ'); });
     btn.classList.add('activ');
     statusMap[voluntarId] = status;
 
     var inp = document.getElementById('inp-' + voluntarId);
-    if (status === 'prezent') {
-      inp.setAttribute('name', 'prezenti');
-      inp.value = voluntarId;
-      var ora = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
-      document.getElementById('time-' + voluntarId).innerHTML = '✅ Check-in: ' + ora;
-    } else {
-      inp.removeAttribute('name');
-      if (status === 'absent') document.getElementById('time-' + voluntarId).innerHTML = '';
+    if (inp) {
+      if (status === 'prezent') {
+        inp.setAttribute('name', 'prezenti');
+        inp.value = voluntarId;
+        var ora = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit', minute:'2-digit'});
+        var timeBox = document.getElementById('time-' + voluntarId);
+        if (timeBox) timeBox.innerHTML = '✅ Check-in: ' + ora;
+      } else {
+        inp.removeAttribute('name');
+        if (status === 'absent') {
+          var timeBox2 = document.getElementById('time-' + voluntarId);
+          if (timeBox2) timeBox2.innerHTML = '';
+        }
+      }
     }
 
     fetch('/pontaj/' + eventId + '/marcheaza', {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: 'voluntar_id=' + voluntarId + '&status=' + status
+      body: 'voluntar_id=' + encodeURIComponent(voluntarId) + '&status=' + encodeURIComponent(status)
     });
 
     actualizeazaStats();
