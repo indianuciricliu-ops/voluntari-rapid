@@ -1117,6 +1117,7 @@ def scan_qr(event_id):
 @login_required
 def api_scan_pontaj(event_id):
     from datetime import datetime
+
     try:
         e = db.session.get(Eveniment, event_id)
         if not e or not e.activ:
@@ -1127,36 +1128,47 @@ def api_scan_pontaj(event_id):
 
         if not qr_text:
             return jsonify(success=False, action='error', message='Cod QR gol sau invalid.'), 400
-        if not qr_text.startswith('VOLUNTAR:'):
-            return jsonify(success=False, action='error', message='Format QR invalid.'), 400
 
-        voluntar_id = int(qr_text.split(':', 1)[1])
-        v = db.session.get(Voluntar, voluntar_id)
-        if not v or not v.activ:
-            return jsonify(success=False, action='error', message='Voluntarul nu există sau este inactiv.'), 404
+        if qr_text != e.qr_token:
+            return jsonify(success=False, action='error', message='QR invalid pentru acest eveniment.'), 400
 
         acum = datetime.now(ZoneInfo("Europe/Bucharest"))
-        pontaj = Pontaj.query.filter_by(eveniment_id=event_id, voluntar_id=voluntar_id).first()
+
+        pontaj = Pontaj.query.filter_by(
+            eveniment_id=event_id,
+            voluntar_id=current_user.id
+        ).first()
 
         if not pontaj:
-            pontaj = Pontaj(voluntar_id=voluntar_id, eveniment_id=event_id, status='prezent', ora_checkin=acum)
+            pontaj = Pontaj(
+                eveniment_id=event_id,
+                voluntar_id=current_user.id,
+                status='prezent',
+                ora_checkin=acum
+            )
             db.session.add(pontaj)
             db.session.commit()
-            return jsonify(success=True, action='checkin', message=f'Check-in reușit pentru {v.prenume} {v.nume}.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M'))
+            return jsonify(
+                success=True,
+                action='checkin',
+                message=f'Check-in reușit la {acum.strftime("%H:%M")}.'
+            )
 
-        if not pontaj.ora_checkin:
-            pontaj.status = 'prezent'
-            pontaj.ora_checkin = acum
-            db.session.commit()
-            return jsonify(success=True, action='checkin', message=f'Check-in reușit pentru {v.prenume} {v.nume}.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M'))
-
-        if not pontaj.ora_checkout:
+        if pontaj.ora_checkin and not pontaj.ora_checkout:
             pontaj.status = 'prezent'
             pontaj.ora_checkout = acum
             db.session.commit()
-            return jsonify(success=True, action='checkout', message=f'Check-out reușit pentru {v.prenume} {v.nume}.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M'))
+            return jsonify(
+                success=True,
+                action='checkout',
+                message=f'Check-out reușit la {acum.strftime("%H:%M")}.'
+            )
 
-        return jsonify(success=False, action='closed', message=f'{v.prenume} {v.nume} are deja check-in și check-out făcute.', voluntar=f'{v.prenume} {v.nume}', time=acum.strftime('%H:%M')), 200
+        return jsonify(
+            success=False,
+            action='closed',
+            message='Ai deja check-in și check-out făcute pentru acest eveniment.'
+        ), 200
 
     except Exception as ex:
         db.session.rollback()

@@ -80,9 +80,9 @@
         }
 
         if (j.success && j.action === 'checkin') {
-          setResult('ok', `${j.message} Ora: ${j.time}`);
+          setResult('ok', `${j.message}${j.time ? ' Ora: ' + j.time : ''}`);
         } else if (j.success && j.action === 'checkout') {
-          setResult('warn', `${j.message} Ora: ${j.time}`);
+          setResult('warn', `${j.message}${j.time ? ' Ora: ' + j.time : ''}`);
         } else {
           setResult('err', j.message || 'Scanare nereușită.');
         }
@@ -95,7 +95,7 @@
       }
     }
 
-    async function onScanSuccess(decodedText) {
+    async function onScanSuccess(decodedText, decodedResult) {
       if (busy) return;
       if (!decodedText || decodedText === lastText) return;
       busy = true;
@@ -103,11 +103,14 @@
       await sendScan(decodedText);
     }
 
+    function onScanFailure(errorMessage) {
+    }
+
     async function startScanner() {
       document.getElementById('result').style.display = 'none';
       await stopScanner();
       scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
-      scanner.render(onScanSuccess);
+      scanner.render(onScanSuccess, onScanFailure);
     }
 
     async function restartScanner() {
