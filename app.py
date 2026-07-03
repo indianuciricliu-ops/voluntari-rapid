@@ -1104,7 +1104,6 @@ def qr_voluntar(voluntar_id):
 
 @app.route('/scan/<int:event_id>')
 @login_required
-@admin_or_teamleader_required
 def scan_qr(event_id):
     e = db.session.get(Eveniment, event_id)
     if not e:
@@ -1116,7 +1115,6 @@ def scan_qr(event_id):
 
 @app.route('/api/scan-pontaj/<int:event_id>', methods=['POST'])
 @login_required
-@admin_or_teamleader_required
 def api_scan_pontaj(event_id):
     from datetime import datetime
     try:
