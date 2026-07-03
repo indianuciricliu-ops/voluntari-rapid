@@ -1381,8 +1381,12 @@ with app.app_context():
                     ALTER TABLE alocari
                     ADD COLUMN IF NOT EXISTS este_teamleader BOOLEAN DEFAULT FALSE
                 """))
+                conn.execute(text("""
+                    ALTER TABLE evenimente
+                    ADD COLUMN IF NOT EXISTS qr_token VARCHAR(64)
+                """))
                 conn.commit()
-                print("âœ… Migrare Render: ora_sosire extinsa la VARCHAR(50), must_change_password È™i este_teamleader adÄƒugate")
+                print("✅ Migrare Render: ora_sosire extinsa la VARCHAR(50), must_change_password, este_teamleader și qr_token adăugate")
         else:
             print("Migrare Render: nu este PostgreSQL, sar peste ALTER COLUMN.")
             with engine.connect() as conn:
@@ -1394,8 +1398,12 @@ with app.app_context():
                     ALTER TABLE alocari
                     ADD COLUMN este_teamleader BOOLEAN DEFAULT 0
                 """))
+                conn.execute(text("""
+                    ALTER TABLE evenimente
+                    ADD COLUMN qr_token VARCHAR(64)
+                """))
                 conn.commit()
-                print("âœ… Migrare local: must_change_password È™i este_teamleader adÄƒugate")
+                print("✅ Migrare local: must_change_password, este_teamleader și qr_token adăugate")
     except Exception as e:
         print(f"Migrare Render/local: {e}")
 
