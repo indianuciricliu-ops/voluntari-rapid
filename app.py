@@ -493,60 +493,65 @@ def eveniment_nou():
     return render_template('eveniment_nou.html')
 
 
+from sqlalchemy.exc import OperationalError
+
 @app.route('/evenimente/<int:id>')
 @login_required
 def eveniment_detalii(id):
-    from models import Pontaj, Confirmare, Alocare
-    e = db.session.get(Eveniment, id)
-    if not e:
-        flash('Evenimentul nu a fost găsit.', 'danger')
+    try:
+        from models import Pontaj, Confirmare, Alocare
+        e = db.session.get(Eveniment, id)
+        if not e:
+            flash('Evenimentul nu a fost gasit.', 'danger')
+            return redirect(url_for('evenimente'))
+
+        if not getattr(e, 'qr_token', None):
+            import secrets
+            e.qr_token = secrets.token_urlsafe(16)
+            db.session.commit()
+
+        confirmari = Confirmare.query.filter_by(eveniment_id=id).all()
+        disponibili = [c for c in confirmari if c.raspuns == 'vin']
+        indisponibili = [c for c in confirmari if c.raspuns == 'nu_vin']
+        nesiguri = [c for c in confirmari if c.raspuns == 'poate']
+
+        confirmare_user = Confirmare.query.filter_by(
+            eveniment_id=id, voluntar_id=current_user.id
+        ).first()
+
+        pontaje = Pontaj.query.filter_by(eveniment_id=id).all()
+        prezenti = [p for p in pontaje if p.status == 'prezent']
+        toti_voluntarii = Voluntar.query.filter_by(activ=True).all()
+
+        departamente = [d[0] for d in db.session.query(
+            Voluntar.departament
+        ).distinct().all() if d[0]]
+
+        alocari = Alocare.query.filter_by(eveniment_id=id).all()
+        alocari_dict = {a.voluntar_id: a for a in alocari}
+
+        alocare_user = Alocare.query.filter_by(
+            eveniment_id=id, voluntar_id=current_user.id
+        ).first()
+
+        return render_template(
+            'eveniment_detalii.html',
+            e=e,
+            disponibili=disponibili,
+            indisponibili=indisponibili,
+            nesiguri=nesiguri,
+            confirmare_user=confirmare_user,
+            alocare_user=alocare_user,
+            pontaje=pontaje,
+            prezenti=prezenti,
+            toti_voluntarii=toti_voluntarii,
+            departamente=departamente,
+            alocari_dict=alocari_dict
+        )
+    except OperationalError:
+        db.session.rollback()
+        flash('S-a pierdut conexiunea la baza de date. Reîncearcă.', 'danger')
         return redirect(url_for('evenimente'))
-        import secrets
-    if not e.qr_token:
-        e.qr_token = secrets.token_urlsafe(16)
-        db.session.commit()
-    confirmari = Confirmare.query.filter_by(eveniment_id=id).all()
-    disponibili = [c for c in confirmari if c.raspuns == 'vin']
-    indisponibili = [c for c in confirmari if c.raspuns == 'nu_vin']
-    nesiguri = [c for c in confirmari if c.raspuns == 'poate']
-
-    confirmare_user = Confirmare.query.filter_by(
-        eveniment_id=id, voluntar_id=current_user.id
-    ).first()
-
-    pontaje = Pontaj.query.filter_by(eveniment_id=id).all()
-    for p in pontaje:
-        p.ora_checkin = to_local(p.ora_checkin)
-        p.ora_checkout = to_local(p.ora_checkout)
-
-    prezenti = [p for p in pontaje if p.status == 'prezent']
-    toti_voluntarii = Voluntar.query.filter_by(activ=True).all()
-
-    departamente = [d[0] for d in db.session.query(
-        Voluntar.departament
-    ).distinct().all() if d[0]]
-
-    alocari = Alocare.query.filter_by(eveniment_id=id).all()
-    alocari_dict = {a.voluntar_id: a for a in alocari}
-
-    alocare_user = Alocare.query.filter_by(
-        eveniment_id=id, voluntar_id=current_user.id
-    ).first()
-
-    return render_template(
-        'eveniment_detalii.html',
-        e=e,
-        disponibili=disponibili,
-        indisponibili=indisponibili,
-        nesiguri=nesiguri,
-        confirmare_user=confirmare_user,
-        alocare_user=alocare_user,
-        pontaje=pontaje,
-        prezenti=prezenti,
-        toti_voluntarii=toti_voluntarii,
-        departamente=departamente,
-        alocari_dict=alocari_dict
-    )
 
 
 @app.route("/evenimente/<int:id>/qr")
