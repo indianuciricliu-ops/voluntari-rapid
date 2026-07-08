@@ -1487,6 +1487,167 @@ def departament_teamleader_sterge(id):
     return redirect(url_for('departamente_view'))
 
 
+@app.route("/api/scan-pontaj/<int:eventid>", methods=["POST"])
+@login_required
+def api_scan_pontaj(eventid):
+    from models import Pontaj
+    from datetime import datetime
+
+    try:
+        e = db.session.get(Eveniment, eventid)
+        if not e or not e.activ:
+            return jsonify(
+                success=False,
+                action="error",
+                message="Eveniment inexistent sau inactiv."
+            ), 404
+
+        data = request.get_json(silent=True) or {}
+        qrtext = (data.get("qrtext") or "").strip()
+
+        if not qrtext:
+            return jsonify(
+                success=False,
+                action="error",
+                message="Cod QR gol sau invalid."
+            ), 400
+
+        if not qrtext.startswith("VOLUNTAR"):
+            return jsonify(
+                success=False,
+                action="error",
+                message="Format QR invalid."
+            ), 400
+
+        if requires_giulesti_location(current_user):
+            lat = data.get("lat")
+            lng = data.get("lng")
+            accuracy = data.get("accuracy")
+
+            if lat is None or lng is None:
+                return jsonify(
+                    success=False,
+                    action="location_required",
+                    message="Pentru scanarea prezenței trebuie să permiteți accesul la locație."
+                ), 403
+
+            try:
+                lat = float(lat)
+                lng = float(lng)
+                accuracy = float(accuracy) if accuracy is not None else None
+            except (TypeError, ValueError):
+                return jsonify(
+                    success=False,
+                    action="location_invalid",
+                    message="Coordonatele locației sunt invalide."
+                ), 400
+
+            if accuracy is not None and accuracy > 200:
+                return jsonify(
+                    success=False,
+                    action="location_inaccurate",
+                    message="Locația nu este suficient de precisă. Încercați din nou mai aproape de stadion."
+                ), 403
+
+            dist = distance_meters(lat, lng, GIULESTI_LAT, GIULESTI_LNG)
+            if dist > GIULESTI_RADIUS_METERS:
+                app.logger.warning(
+                    "Scan blocat: user_id=%s rol=%s event_id=%s dist=%.2f lat=%s lng=%s accuracy=%s",
+                    current_user.id,
+                    getattr(current_user, "rol", None),
+                    eventid,
+                    dist,
+                    lat,
+                    lng,
+                    accuracy,
+                )
+                return jsonify(
+                    success=False,
+                    action="outside_location",
+                    message="Trebuie să fiți la Stadionul Giulești pentru a accesa această funcționalitate."
+                ), 403
+
+        try:
+            voluntarid = int(qrtext.split("VOLUNTAR", 1)[1])
+        except (IndexError, ValueError):
+            return jsonify(
+                success=False,
+                action="error",
+                message="Format QR invalid."
+            ), 400
+
+        v = db.session.get(Voluntar, voluntarid)
+        if not v or not v.activ:
+            return jsonify(
+                success=False,
+                action="error",
+                message="Voluntarul nu există sau este inactiv."
+            ), 404
+
+        acum = datetime.now(TZ)
+        pontaj = Pontaj.query.filter_by(
+            eveniment_id=eventid,
+            voluntar_id=voluntarid
+        ).first()
+
+        if not pontaj:
+            pontaj = Pontaj(
+                voluntar_id=voluntarid,
+                eveniment_id=eventid,
+                status="prezent",
+                ora_checkin=acum
+            )
+            db.session.add(pontaj)
+            db.session.commit()
+            return jsonify(
+                success=True,
+                action="checkin",
+                message=f"Check-in reușit pentru {v.prenume} {v.nume}.",
+                voluntar=f"{v.prenume} {v.nume}",
+                time=acum.strftime("%H:%M")
+            )
+
+        if not pontaj.ora_checkin:
+            pontaj.status = "prezent"
+            pontaj.ora_checkin = acum
+            db.session.commit()
+            return jsonify(
+                success=True,
+                action="checkin",
+                message=f"Check-in reușit pentru {v.prenume} {v.nume}.",
+                voluntar=f"{v.prenume} {v.nume}",
+                time=acum.strftime("%H:%M")
+            )
+
+        if not pontaj.ora_checkout:
+            pontaj.status = "prezent"
+            pontaj.ora_checkout = acum
+            db.session.commit()
+            return jsonify(
+                success=True,
+                action="checkout",
+                message=f"Check-out reușit pentru {v.prenume} {v.nume}.",
+                voluntar=f"{v.prenume} {v.nume}",
+                time=acum.strftime("%H:%M")
+            )
+
+        return jsonify(
+            success=False,
+            action="closed",
+            message=f"{v.prenume} {v.nume} are deja check-in și check-out făcute.",
+            voluntar=f"{v.prenume} {v.nume}",
+            time=acum.strftime("%H:%M")
+        ), 200
+
+    except Exception as ex:
+        db.session.rollback()
+        app.logger.exception(ex)
+        return jsonify(
+            success=False,
+            action="error",
+            message="Eroare internă la scanare."
+        ), 500
+
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # MISC
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•

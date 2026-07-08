@@ -101,7 +101,7 @@
 
   <script>
     const eventId = {{ event_id }};
-    const userRole = {{ (current_user.rol or '')|tojson }};
+    const userRole = "{{ (current_user.rol or '')|escapejs }}";
 
     const GIULESTI_LAT = 44.447315;
     const GIULESTI_LNG = 26.045157;
