@@ -1516,11 +1516,11 @@ def api_scan_pontaj(eventid):
                 message="Cod QR gol sau invalid."
             ), 400
 
-        if not qrtext.startswith("VOLUNTAR"):
+        if qrtext != e.qr_token:
             return jsonify(
                 success=False,
                 action="error",
-                message="Format QR invalid."
+                message="Cod QR invalid pentru acest eveniment."
             ), 400
 
         if requires_giulesti_location(current_user):
@@ -1555,48 +1555,22 @@ def api_scan_pontaj(eventid):
 
             dist = distance_meters(lat, lng, GIULESTI_LAT, GIULESTI_LNG)
             if dist > GIULESTI_RADIUS_METERS:
-                app.logger.warning(
-                    "Scan blocat: user_id=%s rol=%s event_id=%s dist=%.2f lat=%s lng=%s accuracy=%s",
-                    current_user.id,
-                    getattr(current_user, "rol", None),
-                    eventid,
-                    dist,
-                    lat,
-                    lng,
-                    accuracy,
-                )
                 return jsonify(
                     success=False,
                     action="outside_location",
                     message="Trebuie să fiți la Stadionul Giulești pentru a accesa această funcționalitate."
                 ), 403
 
-        try:
-            voluntarid = int(qrtext.split("VOLUNTAR", 1)[1])
-        except (IndexError, ValueError):
-            return jsonify(
-                success=False,
-                action="error",
-                message="Format QR invalid."
-            ), 400
-
-        v = db.session.get(Voluntar, voluntarid)
-        if not v or not v.activ:
-            return jsonify(
-                success=False,
-                action="error",
-                message="Voluntarul nu există sau este inactiv."
-            ), 404
-
-        acum = datetime.now(TZ)
         pontaj = Pontaj.query.filter_by(
             eveniment_id=eventid,
-            voluntar_id=voluntarid
+            voluntar_id=current_user.id
         ).first()
+
+        acum = datetime.now(TZ)
 
         if not pontaj:
             pontaj = Pontaj(
-                voluntar_id=voluntarid,
+                voluntar_id=current_user.id,
                 eveniment_id=eventid,
                 status="prezent",
                 ora_checkin=acum
@@ -1606,8 +1580,8 @@ def api_scan_pontaj(eventid):
             return jsonify(
                 success=True,
                 action="checkin",
-                message=f"Check-in reușit pentru {v.prenume} {v.nume}.",
-                voluntar=f"{v.prenume} {v.nume}",
+                message=f"Check-in reușit pentru {current_user.prenume} {current_user.nume}.",
+                voluntar=f"{current_user.prenume} {current_user.nume}",
                 time=acum.strftime("%H:%M")
             )
 
@@ -1618,8 +1592,8 @@ def api_scan_pontaj(eventid):
             return jsonify(
                 success=True,
                 action="checkin",
-                message=f"Check-in reușit pentru {v.prenume} {v.nume}.",
-                voluntar=f"{v.prenume} {v.nume}",
+                message=f"Check-in reușit pentru {current_user.prenume} {current_user.nume}.",
+                voluntar=f"{current_user.prenume} {current_user.nume}",
                 time=acum.strftime("%H:%M")
             )
 
@@ -1630,16 +1604,16 @@ def api_scan_pontaj(eventid):
             return jsonify(
                 success=True,
                 action="checkout",
-                message=f"Check-out reușit pentru {v.prenume} {v.nume}.",
-                voluntar=f"{v.prenume} {v.nume}",
+                message=f"Check-out reușit pentru {current_user.prenume} {current_user.nume}.",
+                voluntar=f"{current_user.prenume} {current_user.nume}",
                 time=acum.strftime("%H:%M")
             )
 
         return jsonify(
             success=False,
             action="closed",
-            message=f"{v.prenume} {v.nume} are deja check-in și check-out făcute.",
-            voluntar=f"{v.prenume} {v.nume}",
+            message=f"{current_user.prenume} {current_user.nume} are deja check-in și check-out făcute.",
+            voluntar=f"{current_user.prenume} {current_user.nume}",
             time=acum.strftime("%H:%M")
         ), 200
 
@@ -1767,4 +1741,4 @@ with app.app_context():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)„
