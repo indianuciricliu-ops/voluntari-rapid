@@ -6,10 +6,14 @@
   <title>Statistici</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body{background:#f7f6f2;font-family:Inter,sans-serif}
-    .wrap{max-width:1400px;margin:0 auto;padding:24px}
-    .card{border:0;box-shadow:0 4px 18px rgba(0,0,0,.06)}
-    .stat{font-size:28px;font-weight:800}
+    body { background: #f7f6f2; font-family: Inter, sans-serif; }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    .card { border: 0; box-shadow: 0 4px 18px rgba(0,0,0,.06); border-radius: 18px; }
+    .stat { font-size: 28px; font-weight: 800; }
+    .mini-stat { font-size: 20px; font-weight: 700; }
+    .muted { color: #6c757d; }
+    .soft-box { border: 1px solid #ece7df; background: #fcfbf8; border-radius: 14px; }
+    .table thead th { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -17,44 +21,114 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
     <div>
       <h1 class="h3 mb-1">Statistici</h1>
-      <div class="text-muted">Rezumat general, top voluntari, top evenimente și detalii per voluntar.</div>
+      <div class="text-muted">Rezumat general, top voluntari, top evenimente și detalii per voluntar / eveniment.</div>
     </div>
     <a class="btn btn-dark" href="{{ url_for('index') }}">Înapoi la dashboard</a>
   </div>
 
   <div class="row g-3 mb-4">
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Voluntari activi</div><div class="stat">{{ total_voluntari }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Evenimente active</div><div class="stat">{{ total_evenimente }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Prezențe</div><div class="stat">{{ total_prezente }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Rată globală</div><div class="stat">{{ rata_globala }}%</div></div></div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="text-muted">Voluntari activi</div>
+        <div class="stat">{{ total_voluntari }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="text-muted">Evenimente active</div>
+        <div class="stat">{{ total_evenimente }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="text-muted">Prezențe</div>
+        <div class="stat">{{ total_prezente }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <div class="text-muted">Rată globală</div>
+        <div class="stat">{{ rata_globala }}%</div>
+      </div>
+    </div>
   </div>
 
-  <div class="card p-3 mb-4">
-    <h2 class="h5">Alege voluntarul</h2>
-    <form method="get" class="row g-2">
-      <div class="col-md-8">
-        <select name="voluntar_id" class="form-select">
-          <option value="">-- Selectează voluntarul --</option>
-          {% for v in recent_voluntari %}
-          <option value="{{ v.id }}" {% if selected_voluntar and selected_voluntar.id == v.id %}selected{% endif %}>{{ v.prenume }} {{ v.nume }}{% if v.departament %} — {{ v.departament }}{% endif %}</option>
-          {% endfor %}
-        </select>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="card p-3 h-100">
+        <h2 class="h5">Alege voluntarul</h2>
+        <form method="get" class="row g-2">
+          {% if selected_eveniment %}
+            <input type="hidden" name="eveniment_id" value="{{ selected_eveniment.id }}">
+          {% endif %}
+          <div class="col-md-8">
+            <select name="voluntar_id" class="form-select">
+              <option value="">-- Selectează voluntarul --</option>
+              {% for v in recent_voluntari %}
+              <option value="{{ v.id }}" {% if selected_voluntar and selected_voluntar.id == v.id %}selected{% endif %}>
+                {{ v.prenume }} {{ v.nume }}{% if v.departament %} — {{ v.departament }}{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4 d-grid">
+            <button class="btn btn-primary" type="submit">Vezi statistici</button>
+          </div>
+        </form>
       </div>
-      <div class="col-md-4 d-grid">
-        <button class="btn btn-primary" type="submit">Vezi statistici</button>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card p-3 h-100">
+        <h2 class="h5">Alege evenimentul</h2>
+        <form method="get" class="row g-2">
+          {% if selected_voluntar %}
+            <input type="hidden" name="voluntar_id" value="{{ selected_voluntar.id }}">
+          {% endif %}
+          <div class="col-md-8">
+            <select name="eveniment_id" class="form-select">
+              <option value="">-- Selectează evenimentul --</option>
+              {% for e in recent_evenimente %}
+              <option value="{{ e.id }}" {% if selected_eveniment and selected_eveniment.id == e.id %}selected{% endif %}>
+                {{ e.titlu }}{% if e.data %} — {{ e.data.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4 d-grid">
+            <button class="btn btn-outline-dark" type="submit">Vezi eveniment</button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
 
   {% if selected_voluntar %}
   <div class="card p-3 mb-4">
-    <h2 class="h5 mb-3">{{ selected_voluntar.prenume }} {{ selected_voluntar.nume }}</h2>
-    <div class="row g-3">
-      <div class="col-md-3"><div class="border rounded p-2">Prezențe: <strong>{{ selected_tot.prezente }}</strong></div></div>
-      <div class="col-md-3"><div class="border rounded p-2">Absențe: <strong>{{ selected_tot.absente }}</strong></div></div>
-      <div class="col-md-3"><div class="border rounded p-2">Total: <strong>{{ selected_tot.total }}</strong></div></div>
-      <div class="col-md-3"><div class="border rounded p-2">Rată: <strong>{{ selected_tot.rata }}%</strong></div></div>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="h5 mb-1">{{ selected_voluntar.prenume }} {{ selected_voluntar.nume }}</h2>
+        <div class="muted">
+          {% if selected_voluntar.departament %}{{ selected_voluntar.departament }}{% else %}Fără departament{% endif %}
+        </div>
+      </div>
     </div>
+
+    <div class="row g-3">
+      <div class="col-md-2"><div class="soft-box p-3">Prezențe: <strong>{{ selected_tot.prezente }}</strong></div></div>
+      <div class="col-md-2"><div class="soft-box p-3">Absențe: <strong>{{ selected_tot.absente }}</strong></div></div>
+      <div class="col-md-2"><div class="soft-box p-3">Întârzieri: <strong>{{ selected_tot.intarziate }}</strong></div></div>
+      <div class="col-md-2"><div class="soft-box p-3">Total: <strong>{{ selected_tot.total }}</strong></div></div>
+      <div class="col-md-2"><div class="soft-box p-3">Rată: <strong>{{ selected_tot.rata }}%</strong></div></div>
+      <div class="col-md-2"><div class="soft-box p-3">Total ore: <strong>{{ selected_tot.total_ore_formatat }}</strong></div></div>
+    </div>
+
+    <div class="row g-3 mt-1">
+      <div class="col-md-3">
+        <div class="soft-box p-3">Medie / eveniment: <strong>{{ selected_tot.media_ore_formatata }}</strong></div>
+      </div>
+    </div>
+
     <div class="table-responsive mt-3">
       <table class="table table-sm align-middle">
         <thead>
@@ -64,10 +138,13 @@
             <th>Status</th>
             <th>Check-in</th>
             <th>Check-out</th>
+            <th>Durată</th>
           </tr>
         </thead>
         <tbody>
-        {% for pontaj, ev in selected_hist %}
+        {% for row in selected_hist %}
+          {% set pontaj = row.pontaj %}
+          {% set ev = row.eveniment %}
           <tr>
             <td>{{ ev.titlu }}</td>
             <td>{{ ev.data.strftime('%d.%m.%Y %H:%M') if ev.data else '' }}</td>
@@ -82,8 +159,98 @@
             </td>
             <td>{{ pontaj.ora_checkin.strftime('%d.%m.%Y %H:%M') if pontaj.ora_checkin else '-' }}</td>
             <td>{{ pontaj.ora_checkout.strftime('%d.%m.%Y %H:%M') if pontaj.ora_checkout else '-' }}</td>
+            <td><strong>{{ row.durata_formatata }}</strong></td>
           </tr>
         {% endfor %}
+        {% if not selected_hist %}
+          <tr><td colspan="6" class="text-muted">Nu există istoric pentru acest voluntar.</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if selected_eveniment and selected_eveniment_stats %}
+  <div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="h5 mb-1">{{ selected_eveniment.titlu }}</h2>
+        <div class="muted">
+          {% if selected_eveniment.data %}{{ selected_eveniment.data.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+          {% if selected_eveniment.locatie %} · {{ selected_eveniment.locatie }}{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-2">
+      <div class="col-md-3 col-lg-2"><div class="soft-box p-3">Alocați: <strong>{{ selected_eveniment_stats.alocati }}</strong></div></div>
+      <div class="col-md-3 col-lg-2"><div class="soft-box p-3">Votați: <strong>{{ selected_eveniment_stats.votati }}</strong></div></div>
+      <div class="col-md-3 col-lg-2"><div class="soft-box p-3">Nevotați: <strong>{{ selected_eveniment_stats.nevotati }}</strong></div></div>
+      <div class="col-md-3 col-lg-2"><div class="soft-box p-3">Prezenți: <strong>{{ selected_eveniment_stats.prezenti }}</strong></div></div>
+      <div class="col-md-3 col-lg-2"><div class="soft-box p-3">Absenți: <strong>{{ selected_eveniment_stats.absenti }}</strong></div></div>
+      <div class="col-md-3 col-lg-2"><div class="soft-box p-3">Întârziați: <strong>{{ selected_eveniment_stats.intarziati }}</strong></div></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-3"><div class="soft-box p-3">Vin: <strong>{{ selected_eveniment_stats.vin }}</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Poate: <strong>{{ selected_eveniment_stats.poate }}</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Nu vin: <strong>{{ selected_eveniment_stats.nu_vin }}</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Rată prezență: <strong>{{ selected_eveniment_stats.rata }}%</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Total ore cumulate: <strong>{{ selected_eveniment_stats.total_ore_formatat }}</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Medie / voluntar: <strong>{{ selected_eveniment_stats.media_ore_formatata }}</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Cu durată completă: <strong>{{ selected_eveniment_stats.cu_durata }}</strong></div></div>
+      <div class="col-md-3"><div class="soft-box p-3">Pontaje: <strong>{{ selected_eveniment_stats.pontati }}</strong></div></div>
+    </div>
+
+    <div class="table-responsive mt-4">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Voluntar</th>
+            <th>Departament</th>
+            <th>Confirmare</th>
+            <th>Pontaj</th>
+            <th>Check-in</th>
+            <th>Check-out</th>
+            <th>Durată</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in selected_eveniment_hist %}
+          <tr>
+            <td>{{ row.voluntar.prenume }} {{ row.voluntar.nume }}</td>
+            <td>{{ row.departament or '-' }}</td>
+            <td>
+              {% if row.status_confirmare == 'vin' %}
+                <span class="badge bg-success">Vin</span>
+              {% elif row.status_confirmare == 'poate' %}
+                <span class="badge bg-warning text-dark">Poate</span>
+              {% elif row.status_confirmare == 'nuvin' %}
+                <span class="badge bg-danger">Nu vin</span>
+              {% else %}
+                <span class="badge bg-secondary">Fără răspuns</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.status_pontaj == 'prezent' %}
+                <span class="badge bg-success">Prezent</span>
+              {% elif row.status_pontaj == 'intarziat' %}
+                <span class="badge bg-warning text-dark">Întârziat</span>
+              {% elif row.status_pontaj == 'absent' %}
+                <span class="badge bg-danger">Absent</span>
+              {% else %}
+                <span class="badge bg-secondary">Necompletat</span>
+              {% endif %}
+            </td>
+            <td>{{ row.checkin.strftime('%d.%m.%Y %H:%M') if row.checkin else '-' }}</td>
+            <td>{{ row.checkout.strftime('%d.%m.%Y %H:%M') if row.checkout else '-' }}</td>
+            <td><strong>{{ row.durata_formatata }}</strong></td>
+          </tr>
+        {% endfor %}
+        {% if not selected_eveniment_hist %}
+          <tr><td colspan="7" class="text-muted">Nu există date pentru acest eveniment.</td></tr>
+        {% endif %}
         </tbody>
       </table>
     </div>
@@ -95,23 +262,38 @@
       <div class="card p-3 h-100">
         <h2 class="h5">Top voluntari</h2>
         <table class="table table-sm align-middle">
-          <thead><tr><th>#</th><th>Voluntar</th><th>Prezențe</th><th>Rată</th></tr></thead>
+          <thead>
+            <tr><th>#</th><th>Voluntar</th><th>Prezențe</th><th>Rată</th></tr>
+          </thead>
           <tbody>
           {% for v in top_voluntari %}
-            <tr><td>{{ loop.index }}</td><td>{{ v.prenume }} {{ v.nume }}</td><td>{{ v.prezente }}</td><td>{{ v.rata }}%</td></tr>
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ v.prenume }} {{ v.nume }}</td>
+              <td>{{ v.prezente }}</td>
+              <td>{{ v.rata }}%</td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
+
     <div class="col-lg-6">
       <div class="card p-3 h-100">
         <h2 class="h5">Voluntari cu cele mai multe absențe</h2>
         <table class="table table-sm align-middle">
-          <thead><tr><th>#</th><th>Voluntar</th><th>Absențe</th><th>Rată</th></tr></thead>
+          <thead>
+            <tr><th>#</th><th>Voluntar</th><th>Absențe</th><th>Rată</th></tr>
+          </thead>
           <tbody>
           {% for v in cei_mai_multe_absente %}
-            <tr><td>{{ loop.index }}</td><td>{{ v.prenume }} {{ v.nume }}</td><td>{{ v.absente }}</td><td>{{ v.rata }}%</td></tr>
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ v.prenume }} {{ v.nume }}</td>
+              <td>{{ v.absente }}</td>
+              <td>{{ v.rata }}%</td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>
@@ -124,23 +306,38 @@
       <div class="card p-3 h-100">
         <h2 class="h5">Top evenimente</h2>
         <table class="table table-sm align-middle">
-          <thead><tr><th>#</th><th>Eveniment</th><th>Prezențe</th><th>Rată</th></tr></thead>
+          <thead>
+            <tr><th>#</th><th>Eveniment</th><th>Prezențe</th><th>Rată</th></tr>
+          </thead>
           <tbody>
           {% for e in top_evenimente %}
-            <tr><td>{{ loop.index }}</td><td>{{ e.titlu }}</td><td>{{ e.prezente }}</td><td>{{ e.rata }}%</td></tr>
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ e.titlu }}</td>
+              <td>{{ e.prezente }}</td>
+              <td>{{ e.rata }}%</td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
+
     <div class="col-lg-6">
       <div class="card p-3 h-100">
         <h2 class="h5">Evenimente cu cele mai multe absențe</h2>
         <table class="table table-sm align-middle">
-          <thead><tr><th>#</th><th>Eveniment</th><th>Absențe</th><th>Rată</th></tr></thead>
+          <thead>
+            <tr><th>#</th><th>Eveniment</th><th>Absențe</th><th>Rată</th></tr>
+          </thead>
           <tbody>
           {% for e in evenimente_cu_cele_mai_multe_absente %}
-            <tr><td>{{ loop.index }}</td><td>{{ e.titlu }}</td><td>{{ e.absente }}</td><td>{{ e.rata }}%</td></tr>
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ e.titlu }}</td>
+              <td>{{ e.absente }}</td>
+              <td>{{ e.rata }}%</td>
+            </tr>
           {% endfor %}
           </tbody>
         </table>
@@ -152,10 +349,26 @@
     <h2 class="h5">Statistici pe departamente</h2>
     <div class="table-responsive">
       <table class="table table-sm align-middle">
-        <thead><tr><th>Departament</th><th>Voluntari</th><th>Prezențe</th><th>Absențe</th><th>Rată</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Departament</th>
+            <th>Voluntari</th>
+            <th>Prezențe</th>
+            <th>Absențe</th>
+            <th>Întârzieri</th>
+            <th>Rată</th>
+          </tr>
+        </thead>
         <tbody>
         {% for d in dept_rows %}
-          <tr><td>{{ d.departament }}</td><td>{{ d.voluntari }}</td><td>{{ d.prezente }}</td><td>{{ d.absente }}</td><td>{{ d.rata }}%</td></tr>
+          <tr>
+            <td>{{ d.departament }}</td>
+            <td>{{ d.voluntari }}</td>
+            <td>{{ d.prezente }}</td>
+            <td>{{ d.absente }}</td>
+            <td>{{ d.intarziate }}</td>
+            <td>{{ d.rata }}%</td>
+          </tr>
         {% endfor %}
         </tbody>
       </table>
