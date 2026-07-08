@@ -95,13 +95,14 @@
 
     <div class="actions">
       <button id="retryBtn" class="btn btn-primary" onclick="restartScanner()">Scanează din nou</button>
-      <a class="btn btn-outline" href="{{ url_for('pontaj', eveniment_id=e.id) }}">Înapoi la pontaj</a>
+      <a class="btn btn-outline" href="{{ url_for('pontaj', evenimentid=e.id) }}">Înapoi la pontaj</a>
     </div>
   </div>
 
   <script>
-    const eventId = {{ event_id }};
-    const userRole = "{{ (current_user.rol or '')|escapejs }}";
+    const eventId = {{ eventid|tojson }};
+    const scanApiUrl = {{ url_for('api_scan_pontaj', eventid=e.id)|tojson }};
+    const userRole = {{ (current_user.rol or '')|tojson }};
 
     const GIULESTI_LAT = 44.447315;
     const GIULESTI_LNG = 26.045157;
@@ -231,7 +232,10 @@
           accuracy: currentLocation ? currentLocation.accuracy : null
         };
 
-        const r = await fetch(`/api/scan-pontaj/${eventId}`, {
+        console.log('eventId:', eventId);
+        console.log('scanApiUrl:', scanApiUrl);
+
+        const r = await fetch(scanApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
