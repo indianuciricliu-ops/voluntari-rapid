@@ -96,7 +96,7 @@
       <form method="POST" action="{{ url_for('pontaj_bulk', eveniment_id=e.id) }}" id="formBulk">
         <button type="submit" class="btn btn-success">💾 Salvează tot pontajul</button>
       </form>
-      <a href="{{ url_for('scan_qr', event_id=e.id) }}" class="btn btn-primary">📷 Scan QR</a>
+      <a href="{{ url_for('scanqr', eventid=e.id) }}" class="btn btn-primary">📷 Scan QR</a>
     </div>
   </div>
 
