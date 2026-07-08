@@ -94,21 +94,15 @@
     <div id="result" class="result"></div>
 
     <div class="actions">
-  <button id="retryBtn" class="btn btn-primary" onclick="restartScanner()">Scanează din nou</button>
-  <a class="btn btn-outline" href="{{ url_for('pontaj', eveniment_id=e.id) }}">Înapoi la pontaj</a>
-</div>
-
-    <script>
-          const eventId = {{ eventid|tojson }};
-          const scanApiUrl = {{ url_for('api_scan_pontaj', eventid=e.id)|tojson }};
-          const userRole = {{ user_role|tojson }};
-</script>
+      <button id="retryBtn" class="btn btn-primary" onclick="restartScanner()">Scanează din nou</button>
+      <a class="btn btn-outline" href="{{ url_for('pontaj', eveniment_id=e.id) }}">Înapoi la pontaj</a>
+    </div>
   </div>
 
   <script>
     const eventId = {{ eventid|tojson }};
-    const scanApiUrl = {{ url_for('api_scan_pontaj', eventid=e.id)|tojson }};
-    const userRole = {{ user_role|tojson }};
+    const scanApiUrl = "/api/scan-pontaj/" + eventId;
+    const userRole = "";
 
     const GIULESTI_LAT = 44.447315;
     const GIULESTI_LNG = 26.045157;
@@ -238,9 +232,6 @@
           accuracy: currentLocation ? currentLocation.accuracy : null
         };
 
-        console.log('eventId:', eventId);
-        console.log('scanApiUrl:', scanApiUrl);
-
         const r = await fetch(scanApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -288,8 +279,7 @@
       await sendScan(decodedText);
     }
 
-    function onScanFailure(errorMessage) {
-    }
+    function onScanFailure(errorMessage) {}
 
     async function startScanner() {
       clearResult();
