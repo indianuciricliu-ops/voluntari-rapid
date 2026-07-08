@@ -1343,15 +1343,19 @@ def qr_voluntar(voluntar_id):
     return render_template('qr.html', v=v, img_b64=img_b64, qr_text=qr_text)
 
 
-@app.route('/scan/<int:event_id>')
+@app.route("/scan/<int:eventid>")
 @login_required
-def scan_qr(event_id):
-    e = db.session.get(Eveniment, event_id)
+def scanqr(eventid):
+    e = db.session.get(Eveniment, eventid)
     if not e:
-        flash('Evenimentul nu a fost găsit.', 'danger')
-        return redirect(url_for('evenimente'))
-
-    return render_template('scan.html', e=e, event_id=event_id)
+        flash("Evenimentul nu a fost găsit.", "danger")
+        return redirect(url_for("evenimente"))
+    return render_template(
+        "scan.html",
+        e=e,
+        eventid=eventid,
+        user_role=getattr(current_user, "rol", "")
+    )
 
 
 @app.route('/departamente')
