@@ -8,8 +8,32 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from pywebpush import webpush, WebPushException
 from functools import wraps
 from datetime import datetime, timezone
+import math
 from zoneinfo import ZoneInfo
 TZ = ZoneInfo("Europe/Bucharest")
+GIULESTI_LAT = 44.447315
+GIULESTI_LNG = 26.045157
+GIULESTI_RADIUS_METERS = 250
+
+
+def distance_meters(lat1, lon1, lat2, lon2):
+    r = 6371000
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lon2 - lon1)
+
+    a = (
+        math.sin(d_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return r * c
+
+
+def requires_giulesti_location(user):
+    rol = (getattr(user, "rol", "") or "").strip().lower()
+    return rol in {"voluntar", "teamleader", "team leader"}
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -1328,69 +1352,6 @@ def scan_qr(event_id):
         return redirect(url_for('evenimente'))
 
     return render_template('scan.html', e=e, event_id=event_id)
-
-
-@app.route('/api/scan-pontaj/<int:event_id>', methods=['POST'])
-@login_required
-def api_scan_pontaj(event_id):
-    from datetime import datetime
-
-    try:
-        e = db.session.get(Eveniment, event_id)
-        if not e or not e.activ:
-            return jsonify(success=False, action='error', message='Eveniment inexistent sau inactiv.'), 404
-
-        data = request.get_json(silent=True) or {}
-        qr_text = (data.get('qr_text') or '').strip()
-
-        if not qr_text:
-            return jsonify(success=False, action='error', message='Cod QR gol sau invalid.'), 400
-
-        if qr_text != e.qr_token:
-            return jsonify(success=False, action='error', message='QR invalid pentru acest eveniment.'), 400
-
-        acum = datetime.now(ZoneInfo("Europe/Bucharest"))
-
-        pontaj = Pontaj.query.filter_by(
-            eveniment_id=event_id,
-            voluntar_id=current_user.id
-        ).first()
-
-        if not pontaj:
-            pontaj = Pontaj(
-                eveniment_id=event_id,
-                voluntar_id=current_user.id,
-                status='prezent',
-                ora_checkin=acum
-            )
-            db.session.add(pontaj)
-            db.session.commit()
-            return jsonify(
-                success=True,
-                action='checkin',
-                message=f'Check-in reușit la {acum.strftime("%H:%M")}.'
-            )
-
-        if pontaj.ora_checkin and not pontaj.ora_checkout:
-            pontaj.status = 'prezent'
-            pontaj.ora_checkout = acum
-            db.session.commit()
-            return jsonify(
-                success=True,
-                action='checkout',
-                message=f'Check-out reușit la {acum.strftime("%H:%M")}.'
-            )
-
-        return jsonify(
-            success=False,
-            action='closed',
-            message='Ai deja check-in și check-out făcute pentru acest eveniment.'
-        ), 200
-
-    except Exception as ex:
-        db.session.rollback()
-        app.logger.exception(ex)
-        return jsonify(success=False, action='error', message='Eroare internă la scanare.'), 500
 
 
 @app.route('/departamente')

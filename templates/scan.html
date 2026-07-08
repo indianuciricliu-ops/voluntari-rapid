@@ -6,47 +6,205 @@
   <title>Scanare QR</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f4f4f4; color: #222; }
-    .wrap { width: 100%; max-width: 420px; background: #fff; border-radius: 18px; box-shadow: 0 10px 35px rgba(0,0,0,.12); padding: 24px; text-align: center; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f4f4;
+      color: #222;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.12);
+      padding: 24px;
+      text-align: center;
+    }
     h1 { margin-bottom: 8px; font-size: 24px; }
     .sub { font-size: 14px; color: #666; margin-bottom: 16px; }
     #reader { width: 100%; }
     .note { margin-top: 12px; font-size: 14px; color: #666; }
-    .result { margin-top: 16px; padding: 12px 14px; border-radius: 12px; font-size: 14px; display: none; }
+    .result {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      display: none;
+      white-space: pre-line;
+    }
     .result.ok { display: block; background: #d4edda; color: #155724; }
     .result.warn { display: block; background: #fff3cd; color: #856404; }
     .result.err { display: block; background: #f8d7da; color: #721c24; }
-    .actions { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-    .btn { display: inline-block; padding: 10px 14px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; }
+    .result.info { display: block; background: #d1ecf1; color: #0c5460; }
+
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+    }
     .btn-primary { background: #6b0018; color: #fff; }
     .btn-outline { background: #fff; color: #333; border: 1px solid #ddd; }
+    .btn[disabled] { opacity: .6; cursor: not-allowed; }
+
+    .geo-box {
+      margin: 14px 0 6px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8f9fa;
+      font-size: 13px;
+      color: #555;
+      text-align: left;
+    }
+
+    .geo-box strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #222;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Scanare QR</h1>
     <div class="sub">{{ e.titlu }}</div>
+
+    <div class="geo-box" id="geoBox">
+      <strong>Verificare locație</strong>
+      Se verifică dacă utilizatorul este în apropierea stadionului.
+    </div>
+
     <div id="reader"></div>
     <div class="note">Ține codul QR în fața camerei.</div>
     <div id="result" class="result"></div>
 
     <div class="actions">
-      <button class="btn btn-primary" onclick="restartScanner()">Scanează din nou</button>
+      <button id="retryBtn" class="btn btn-primary" onclick="restartScanner()">Scanează din nou</button>
       <a class="btn btn-outline" href="{{ url_for('pontaj', eveniment_id=e.id) }}">Înapoi la pontaj</a>
     </div>
   </div>
 
   <script>
     const eventId = {{ event_id }};
+    const userRole = {{ (current_user.rol or '')|tojson }};
+
+    const GIULESTI_LAT = 44.447315;
+    const GIULESTI_LNG = 26.045157;
+    const GIULESTI_RADIUS_METERS = 250;
+
     let scanner = null;
     let busy = false;
     let lastText = '';
+    let currentLocation = null;
+
+    function needsLocationCheck(role) {
+      const r = (role || '').trim().toLowerCase();
+      return ['voluntar', 'teamleader', 'team leader'].includes(r);
+    }
 
     function setResult(type, message) {
       const box = document.getElementById('result');
       box.className = 'result ' + type;
       box.style.display = 'block';
       box.textContent = message;
+    }
+
+    function clearResult() {
+      const box = document.getElementById('result');
+      box.className = 'result';
+      box.style.display = 'none';
+      box.textContent = '';
+    }
+
+    function setGeoStatus(message) {
+      document.getElementById('geoBox').innerHTML = `<strong>Verificare locație</strong>${message}`;
+    }
+
+    function toRad(v) {
+      return v * Math.PI / 180;
+    }
+
+    function distanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function getCurrentPositionPromise() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Browserul nu suportă geolocația.'));
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          position => resolve(position),
+          error => reject(error),
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          }
+        );
+      });
+    }
+
+    async function validateLocation() {
+      if (!needsLocationCheck(userRole)) {
+        currentLocation = null;
+        setGeoStatus('Rol fără restricție de locație. Scanarea este permisă.');
+        return { ok: true };
+      }
+
+      try {
+        setGeoStatus('Cerere locație în curs...');
+        const pos = await getCurrentPositionPromise();
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy || null;
+        const dist = distanceMeters(lat, lng, GIULESTI_LAT, GIULESTI_LNG);
+
+        currentLocation = { lat, lng, accuracy };
+
+        if (accuracy !== null && accuracy > 200) {
+          setGeoStatus('Locația este prea imprecisă. Încearcă din nou din apropierea stadionului.');
+          return { ok: false, message: 'Locația nu este suficient de precisă.' };
+        }
+
+        if (dist > GIULESTI_RADIUS_METERS) {
+          setGeoStatus('Utilizatorul nu este în raza permisă pentru scanare.');
+          return { ok: false, message: 'Trebuie să fii la Stadionul Giulești pentru a scana.' };
+        }
+
+        setGeoStatus(`Locație validată. Distanță estimată: ${Math.round(dist)} m față de stadion.`);
+        return { ok: true };
+      } catch (err) {
+        currentLocation = null;
+        setGeoStatus('Accesul la locație este necesar pentru scanare.');
+        return { ok: false, message: 'Trebuie să permiți accesul la locație pentru scanare.' };
+      }
     }
 
     async function stopScanner() {
@@ -59,10 +217,24 @@
 
     async function sendScan(qrText) {
       try {
+        const locCheck = await validateLocation();
+        if (!locCheck.ok) {
+          setResult('err', locCheck.message || 'Locația nu este validă pentru scanare.');
+          await stopScanner();
+          return;
+        }
+
+        const payload = {
+          qrtext: qrText,
+          lat: currentLocation ? currentLocation.lat : null,
+          lng: currentLocation ? currentLocation.lng : null,
+          accuracy: currentLocation ? currentLocation.accuracy : null
+        };
+
         const r = await fetch(`/api/scan-pontaj/${eventId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qr_text: qrText })
+          body: JSON.stringify(payload)
         });
 
         let j = null;
@@ -83,6 +255,8 @@
           setResult('ok', `${j.message}${j.time ? ' Ora: ' + j.time : ''}`);
         } else if (j.success && j.action === 'checkout') {
           setResult('warn', `${j.message}${j.time ? ' Ora: ' + j.time : ''}`);
+        } else if (!j.success && j.action === 'closed') {
+          setResult('warn', j.message || 'Voluntarul are deja check-in și check-out.');
         } else {
           setResult('err', j.message || 'Scanare nereușită.');
         }
@@ -95,9 +269,10 @@
       }
     }
 
-    async function onScanSuccess(decodedText, decodedResult) {
+    async function onScanSuccess(decodedText) {
       if (busy) return;
       if (!decodedText || decodedText === lastText) return;
+
       busy = true;
       lastText = decodedText;
       await sendScan(decodedText);
@@ -107,9 +282,21 @@
     }
 
     async function startScanner() {
-      document.getElementById('result').style.display = 'none';
+      clearResult();
       await stopScanner();
-      scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
+
+      const locCheck = await validateLocation();
+      if (!locCheck.ok) {
+        setResult('err', locCheck.message || 'Locația nu permite pornirea scanării.');
+        return;
+      }
+
+      scanner = new Html5QrcodeScanner(
+        'reader',
+        { fps: 10, qrbox: 250 },
+        false
+      );
+
       scanner.render(onScanSuccess, onScanFailure);
     }
 
