@@ -58,69 +58,64 @@ body {
   border-color: rgba(255,255,255,.35);
 }
 
-/* ============ BULINE LOGO (visiniu + alb) ============ */
+/* ============ LOGO PROGRAM (imagine, in loc de buline) ============ */
 
-.brand-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.brand-logo {
+  height: 34px;
+  width: 34px;
+  object-fit: contain;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
-.dot-visiniu {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #6b0018;
-  display: inline-block;
-}
-
-.dot-alb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid #6b0018;
-  display: inline-block;
-}
-
-/* ============ POWERED BY — text simplu, nu link ============ */
+/* ============ POWERED BY — cu logo sponsor (imagine, nu text) ============ */
 
 .powered-by {
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .3px;
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 2px;
-  display: block;
   pointer-events: none;
-  text-decoration: none;
-  cursor: default;
 }
 
-.powered-by strong {
-  color: #ffe8ea;
-  font-weight: 900;
+.powered-by span {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  opacity: .9;
+}
+
+.powered-by img {
+  height: 14px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: .95;
 }
 
 /* Variantă pentru fundal alb (ex: login) */
 .powered-by-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  pointer-events: none;
+}
+
+.powered-by-login span {
   color: var(--rapid-visiniu);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .4px;
-  margin-top: 10px;
   opacity: .85;
-  text-align: center;
-  pointer-events: none;
-  text-decoration: none;
-  cursor: default;
 }
 
-.powered-by-login strong {
-  color: var(--rapid-visiniu-inchis);
-  font-weight: 900;
+.powered-by-login img {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
 }
 
 /* ============ MAIN LAYOUT ============ */

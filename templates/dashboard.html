@@ -93,13 +93,13 @@
 <nav class="navbar navbar-expand-lg navbar-dark topbar">
   <div class="container-fluid">
     <a class="navbar-brand" href="{{ url_for('index') }}">
-      <span class="brand-dots">
-        <span class="dot-visiniu"></span>
-        <span class="dot-alb"></span>
-      </span>
+      <img src="{{ url_for('static', filename='icons/logo-program.png') }}" alt="Logo Programul de Voluntariat" class="brand-logo">
       <span class="brand-block">
         Voluntariat Manager Rapid 1923
-        <span class="powered-by">Powered by — <strong>IMAMED</strong></span>
+        <span class="powered-by">
+          <span>Powered by —</span>
+          <img src="{{ url_for('static', filename='sponsors/imamed-logo.png') }}" alt="IMAMED">
+        </span>
       </span>
     </a>
 
