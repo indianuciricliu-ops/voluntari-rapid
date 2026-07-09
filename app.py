@@ -1272,11 +1272,11 @@ def export_pontaj_pdf(eveniment_id):
     from models import Pontaj
 
     event = Eveniment.query.get_or_404(eveniment_id)
+
     pontaje = (
-        db.session.query(Pontaj, Voluntar)
-        .join(Voluntar, Pontaj.voluntarid == Voluntar.id)
-        .filter(Pontaj.evenimentid == eveniment_id)
-        .order_by(Voluntar.departament, Voluntar.nume, Voluntar.prenume)
+        Pontaj.query
+        .filter_by(evenimentid=eveniment_id)
+        .order_by(Pontaj.id.asc())
         .all()
     )
 
@@ -1312,7 +1312,9 @@ def export_pontaj_pdf(eveniment_id):
     y -= 0.5 * cm
     p.setFont("Helvetica", 9)
 
-    for pontaj, voluntar in pontaje:
+    for pontaj in pontaje:
+        voluntar = pontaj.voluntar
+
         if y < 2.5 * cm:
             p.showPage()
             y = height - 2 * cm
@@ -1326,8 +1328,12 @@ def export_pontaj_pdf(eveniment_id):
             y -= 0.5 * cm
             p.setFont("Helvetica", 9)
 
-        nume = f"{voluntar.prenume} {voluntar.nume}"
-        departament = voluntar.departament or "-"
+        nume = "-"
+        departament = "-"
+        if voluntar:
+            nume = f"{voluntar.prenume} {voluntar.nume}"
+            departament = voluntar.departament or "-"
+
         status = pontaj.status or "-"
         checkin = pontaj.oracheckin.strftime("%H:%M") if pontaj.oracheckin else "-"
 
