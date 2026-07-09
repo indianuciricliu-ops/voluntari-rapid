@@ -1,0 +1,230 @@
+/* ============================================
+   RAPID 1923 — VOLUNTARIAT MANAGER
+   Design system central — alb + vișiniu
+   Sponsor: Powered by — IMAMED
+   ============================================ */
+
+:root {
+  --rapid-visiniu: #6b0018;
+  --rapid-visiniu-deschis: #8e1231;
+  --rapid-visiniu-inchis: #4a0010;
+  --rapid-alb: #ffffff;
+  --rapid-bg: #f7f6f2;
+  --rapid-text: #1f1720;
+  --rapid-accent-light: #ffcdd2;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Inter, sans-serif;
+  background: var(--rapid-bg);
+  color: var(--rapid-text);
+}
+
+/* ============ TOPBAR / NAVBAR ============ */
+
+.topbar {
+  background: linear-gradient(90deg, var(--rapid-visiniu), var(--rapid-visiniu-deschis));
+  padding: 12px 18px;
+}
+
+.topbar .navbar-brand {
+  color: #fff !important;
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar .brand-block {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.topbar .nav-link {
+  color: var(--rapid-accent-light) !important;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.topbar .nav-link:hover {
+  color: #fff !important;
+}
+
+.navbar-toggler {
+  border-color: rgba(255,255,255,.35);
+}
+
+/* ============ BULINA VIȘINIE (logo mark) ============ */
+
+.brand-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--rapid-visiniu-inchis);
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Variantă pentru fundal alb (ex: login) */
+.brand-dot-onlight {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--rapid-visiniu);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px var(--rapid-visiniu);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* ============ POWERED BY — SPONSOR ============ */
+
+.powered-by {
+  color: var(--rapid-accent-light);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  opacity: .9;
+  margin-top: -2px;
+}
+
+.powered-by strong {
+  color: #fff;
+  font-weight: 800;
+}
+
+.powered-by-login {
+  color: var(--rapid-visiniu);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  margin-top: 10px;
+  opacity: .85;
+  text-align: center;
+}
+
+.powered-by-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  font-weight: 600;
+  padding: 16px 0;
+  letter-spacing: .3px;
+}
+
+.powered-by-footer strong {
+  color: var(--rapid-visiniu);
+}
+
+/* ============ MAIN LAYOUT ============ */
+
+.main {
+  padding: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  margin-bottom: 18px;
+}
+
+.card h3 {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+/* ============ BUTOANE ============ */
+
+.btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.btn-primary {
+  background: var(--rapid-visiniu);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--rapid-visiniu-deschis);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid #ddd;
+  color: #333;
+}
+
+.btn-danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* ============ ALERTE ============ */
+
+.alert {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.alert-success { background: #d4edda; color: #155724; }
+.alert-danger  { background: #f8d7da; color: #721c24; }
+.alert-info    { background: #d1ecf1; color: #0c5460; }
+
+/* ============ BADGES ============ */
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin       { background: #ffd7dd; color: var(--rapid-visiniu); }
+.coordonator { background: #fff3cd; color: #856404; }
+.voluntar    { background: #d4edda; color: #155724; }
+.dept        { background: #e8f0fe; color: #1a56db; }
+
+.ok       { background: #d4edda; color: #155724; }
+.absent   { background: #f8d7da; color: #721c24; }
+.intarziat{ background: #fff3cd; color: #856404; }
+.vin      { background: #d4edda; color: #155724; }
+.nu_vin   { background: #f8d7da; color: #721c24; }
+.poate    { background: #fff3cd; color: #856404; }
+
+/* ============ RESPONSIVE ============ */
+
+@media (max-width: 768px) {
+  .main { padding: 16px; }
+  .topbar .navbar-brand { font-size: 16px; }
+}
