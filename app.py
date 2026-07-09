@@ -1265,6 +1265,87 @@ def pontaj(eveniment_id):
         pontaje_json=pontaje_json
     )
 
+@app.route('/pontaj/<int:eveniment_id>/export-pdf')
+@login_required
+@admin_or_teamleader_required
+def export_pontaj_pdf(eveniment_id):
+    from models import Pontaj
+
+    event = Eveniment.query.get_or_404(eveniment_id)
+    pontaje = (
+        db.session.query(Pontaj, Voluntar)
+        .join(Voluntar, Pontaj.voluntarid == Voluntar.id)
+        .filter(Pontaj.evenimentid == eveniment_id)
+        .order_by(Voluntar.departament, Voluntar.nume, Voluntar.prenume)
+        .all()
+    )
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    y = height - 2 * cm
+
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(2 * cm, y, f"Pontaj pentru evenimentul: {getattr(event, 'titlu', 'Eveniment')}")
+    y -= 0.8 * cm
+
+    p.setFont("Helvetica", 10)
+    if getattr(event, 'data', None):
+        try:
+            data_text = event.data.strftime("%d.%m.%Y %H:%M")
+        except Exception:
+            data_text = str(event.data)
+        p.drawString(2 * cm, y, f"Data: {data_text}")
+        y -= 0.6 * cm
+
+    if getattr(event, 'locatie', None):
+        p.drawString(2 * cm, y, f"Locație: {event.locatie}")
+        y -= 0.8 * cm
+
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(2 * cm, y, "Voluntar")
+    p.drawString(8.5 * cm, y, "Departament")
+    p.drawString(13 * cm, y, "Status")
+    p.drawString(16 * cm, y, "Check-in")
+    y -= 0.4 * cm
+    p.line(2 * cm, y, 19 * cm, y)
+    y -= 0.5 * cm
+    p.setFont("Helvetica", 9)
+
+    for pontaj, voluntar in pontaje:
+        if y < 2.5 * cm:
+            p.showPage()
+            y = height - 2 * cm
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(2 * cm, y, "Voluntar")
+            p.drawString(8.5 * cm, y, "Departament")
+            p.drawString(13 * cm, y, "Status")
+            p.drawString(16 * cm, y, "Check-in")
+            y -= 0.4 * cm
+            p.line(2 * cm, y, 19 * cm, y)
+            y -= 0.5 * cm
+            p.setFont("Helvetica", 9)
+
+        nume = f"{voluntar.prenume} {voluntar.nume}"
+        departament = voluntar.departament or "-"
+        status = pontaj.status or "-"
+        checkin = pontaj.oracheckin.strftime("%H:%M") if pontaj.oracheckin else "-"
+
+        p.drawString(2 * cm, y, nume[:34])
+        p.drawString(8.5 * cm, y, departament[:22])
+        p.drawString(13 * cm, y, status)
+        p.drawString(16 * cm, y, checkin)
+        y -= 0.55 * cm
+
+    p.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"pontaj_{event.id}.pdf",
+        mimetype="application/pdf"
+    )
 
 @app.route('/pontaj/<int:eveniment_id>/marcheaza', methods=['POST'])
 @login_required

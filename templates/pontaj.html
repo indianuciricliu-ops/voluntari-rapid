@@ -165,6 +165,9 @@
       <form method="POST" action="{{ url_for('pontaj_bulk', eveniment_id=e.id) }}" id="formBulk">
         <button type="submit" class="btn btn-success">💾 Salvează tot pontajul</button>
       </form>
+        <a href="{{ url_for('export_pontaj_pdf', eveniment_id=e.id) }}" class="btn btn-primary">
+    📄 Export PDF
+  </a>
       <a href="{{ url_for('scanqr', eventid=e.id) }}" class="btn btn-primary">📷 Scan QR</a>
     </div>
   </div>
