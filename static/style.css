@@ -180,6 +180,14 @@ body {
   border-radius: 8px;
 }
 
+.btn-success {
+  background: #28a745;
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
 /* ============ ALERTE ============ */
 
 .alert {

@@ -6,24 +6,10 @@
   <title>Departamente & Teamleaderi</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 
   <style>
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
-
-    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); padding:12px 18px; }
-    .topbar .navbar-brand { color:#fff !important; font-size:18px; font-weight:800; }
-    .topbar .nav-link { color:#ffcdd2 !important; font-size:14px; font-weight:600; }
-    .topbar .nav-link:hover { color:#fff !important; }
-    .navbar-toggler { border-color: rgba(255,255,255,.35); }
-
-    .main { padding:28px; max-width:900px; margin:0 auto; }
-    .card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 4px 20px rgba(0,0,0,.06); margin-bottom:18px; }
-    .card h3 { font-size:16px; font-weight:800; margin-bottom:12px; }
-    .alert { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:500; }
-    .alert-success { background:#d4edda; color:#155724; }
-    .alert-danger { background:#f8d7da; color:#721c24; }
-    .alert-info { background:#d1ecf1; color:#0c5460; }
+    .main { max-width:900px; }
 
     .dept-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
     .dept-name { font-size:15px; font-weight:800; }
@@ -32,17 +18,12 @@
     .badge-tl { display:inline-block; background:#f0eef0; border-radius:999px; padding:4px 10px; margin:2px 4px 2px 0; font-size:12px; }
     .form-row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
     .input-text { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; flex:1; }
-    .textarea { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; width:100%; min-height:60px; resize:vertical; }
+    .textarea { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; width:100%; min-height:60px; resize:vertical; margin-top:8px; }
     .select { padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:13px; min-width:180px; }
-    .btn { padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
-    .btn-primary { background:#6b0018; color:#fff; }
-    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; }
-    .btn-danger { background:#dc3545; color:#fff; }
     .section-title { font-size:16px; font-weight:800; margin-bottom:10px; }
     .section-sub { font-size:13px; color:#777; margin-bottom:12px; }
 
     @media(max-width:768px) {
-      .main { padding:16px; }
       .dept-header { flex-direction:column; }
       .input-text, .textarea, .select { width:100%; max-width:100%; }
     }
@@ -52,7 +33,16 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark topbar">
   <div class="container-fluid">
-    <a class="navbar-brand" href="{{ url_for('index') }}">🔴⚪ Departamente & Teamleaderi</a>
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='icons/logo-program.png') }}" alt="Logo Programul de Voluntariat" class="brand-logo">
+      <span class="brand-block">
+        Voluntariat Manager Rapid 1923
+        <span class="powered-by">
+          <span>Powered by —</span>
+          <img src="{{ url_for('static', filename='sponsors/imamed-logo.png') }}" alt="IMAMED">
+        </span>
+      </span>
+    </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Deschide meniul">
       <span class="navbar-toggler-icon"></span>
@@ -61,9 +51,12 @@
     <div class="collapse navbar-collapse" id="mainNavbar">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-lg-2">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('voluntari') }}">Voluntari</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('evenimente') }}">Evenimente</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('departamente_view') }}">Departamente</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('voluntari') }}">Voluntari</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('alocari') }}">Alocări</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('statistici') }}">Statistici</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Deconectare</a></li>
       </ul>
     </div>
   </div>

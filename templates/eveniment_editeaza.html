@@ -4,39 +4,79 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Editează Eveniment — Rapid</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+
   <style>
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:Inter,sans-serif; background:#f7f6f2; color:#1f1720; }
-    .topbar { background:linear-gradient(90deg,#6b0018,#8e1231); color:#fff; padding:16px 28px; display:flex; justify-content:space-between; align-items:center; }
-    .topbar h1 { font-size:18px; font-weight:800; }
-    .topbar a { color:#ffcdd2; font-size:14px; text-decoration:none; }
-    .main { padding:28px; max-width:620px; }
+    .main { max-width:620px; }
     h2 { font-size:24px; margin-bottom:24px; }
-    .card { background:#fff; border-radius:16px; padding:28px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
     .form-group { margin-bottom:18px; }
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     label { font-size:14px; font-weight:600; display:block; margin-bottom:6px; }
-    input, select, textarea { width:100%; padding:12px 14px; border:1.5px solid #ddd; border-radius:10px; font-size:15px; outline:none; font-family:inherit; }
+    input, select, textarea {
+      width:100%;
+      padding:12px 14px;
+      border:1.5px solid #ddd;
+      border-radius:10px;
+      font-size:15px;
+      outline:none;
+      font-family:inherit;
+    }
     input:focus, select:focus, textarea:focus { border-color:#6b0018; }
     textarea { resize:vertical; min-height:80px; }
-    .btn { padding:12px 24px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
-    .btn-primary { background:#6b0018; color:#fff; }
-    .btn-outline { background:transparent; border:1.5px solid #ddd; color:#333; margin-left:10px; }
+
+    @media(max-width:768px) {
+      .form-row { grid-template-columns:1fr; }
+    }
   </style>
 </head>
 <body>
-<div class="topbar">
-  <h1>🔴⚪ Voluntariat Manager Rapid 1923</h1>
-  <a href="{{ url_for('eveniment_detalii', id=e.id) }}">← Înapoi la eveniment</a>
-</div>
+
+<nav class="navbar navbar-expand-lg navbar-dark topbar">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='icons/logo-program.png') }}" alt="Logo Programul de Voluntariat" class="brand-logo">
+      <span class="brand-block">
+        Voluntariat Manager Rapid 1923
+        <span class="powered-by">
+          <span>Powered by —</span>
+          <img src="{{ url_for('static', filename='sponsors/imamed-logo.png') }}" alt="IMAMED">
+        </span>
+      </span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Deschide meniul">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-lg-2">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('evenimente') }}">Evenimente</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('eveniment_detalii', id=e.id) }}">Înapoi la eveniment</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Deconectare</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
 <div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
   <h2>Editează eveniment</h2>
+
   <div class="card">
     <form method="POST">
       <div class="form-group">
         <label>Titlu eveniment *</label>
         <input type="text" name="titlu" value="{{ e.titlu }}" required/>
       </div>
+
       <div class="form-row">
         <div class="form-group">
           <label>Adversar</label>
@@ -53,6 +93,7 @@
           </select>
         </div>
       </div>
+
       <div class="form-row">
         <div class="form-group">
           <label>Data și ora meciului *</label>
@@ -65,18 +106,23 @@
                  value="{{ e.ora_convocare.strftime('%Y-%m-%dT%H:%M') if e.ora_convocare else '' }}"/>
         </div>
       </div>
+
       <div class="form-group">
         <label>Locație</label>
         <input type="text" name="locatie" value="{{ e.locatie or '' }}"/>
       </div>
+
       <div class="form-group">
         <label>Descriere / note</label>
         <textarea name="descriere">{{ e.descriere or '' }}</textarea>
       </div>
+
       <button type="submit" class="btn btn-primary">Salvează modificările</button>
       <a href="{{ url_for('eveniment_detalii', id=e.id) }}" class="btn btn-outline">Anulează</a>
     </form>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
