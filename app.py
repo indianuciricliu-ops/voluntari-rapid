@@ -1269,81 +1269,80 @@ def pontaj(eveniment_id):
 @login_required
 @admin_or_teamleader_required
 def export_pontaj_pdf(eveniment_id):
-    from models import Pontaj
-
     event = Eveniment.query.get_or_404(eveniment_id)
 
-    pontaje = (
-        Pontaj.query
-        .filter_by(evenimentid=eveniment_id)
-        .order_by(Pontaj.id.asc())
-        .all()
-    )
+    pontaje = list(getattr(event, "pontaje", []) or [])
+    pontaje.sort(key=lambda p: (
+        (getattr(getattr(p, "voluntar", None), "departament", "") or "").lower(),
+        (getattr(getattr(p, "voluntar", None), "nume", "") or "").lower(),
+        (getattr(getattr(p, "voluntar", None), "prenume", "") or "").lower()
+    ))
 
     buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
+    pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 2 * cm
 
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(2 * cm, y, f"Pontaj pentru evenimentul: {getattr(event, 'titlu', 'Eveniment')}")
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(2 * cm, y, f"Pontaj pentru evenimentul: {getattr(event, 'titlu', 'Eveniment')}")
     y -= 0.8 * cm
 
-    p.setFont("Helvetica", 10)
-    if getattr(event, 'data', None):
+    pdf.setFont("Helvetica", 10)
+    if getattr(event, "data", None):
         try:
             data_text = event.data.strftime("%d.%m.%Y %H:%M")
         except Exception:
             data_text = str(event.data)
-        p.drawString(2 * cm, y, f"Data: {data_text}")
+        pdf.drawString(2 * cm, y, f"Data: {data_text}")
         y -= 0.6 * cm
 
-    if getattr(event, 'locatie', None):
-        p.drawString(2 * cm, y, f"Locație: {event.locatie}")
+    if getattr(event, "locatie", None):
+        pdf.drawString(2 * cm, y, f"Locație: {event.locatie}")
         y -= 0.8 * cm
 
-    p.setFont("Helvetica-Bold", 10)
-    p.drawString(2 * cm, y, "Voluntar")
-    p.drawString(8.5 * cm, y, "Departament")
-    p.drawString(13 * cm, y, "Status")
-    p.drawString(16 * cm, y, "Check-in")
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(2 * cm, y, "Voluntar")
+    pdf.drawString(8.5 * cm, y, "Departament")
+    pdf.drawString(13 * cm, y, "Status")
+    pdf.drawString(16 * cm, y, "Check-in")
     y -= 0.4 * cm
-    p.line(2 * cm, y, 19 * cm, y)
+    pdf.line(2 * cm, y, 19 * cm, y)
     y -= 0.5 * cm
-    p.setFont("Helvetica", 9)
+    pdf.setFont("Helvetica", 9)
 
-    for pontaj in pontaje:
-        voluntar = pontaj.voluntar
+    for row in pontaje:
+        voluntar = getattr(row, "voluntar", None)
 
         if y < 2.5 * cm:
-            p.showPage()
+            pdf.showPage()
             y = height - 2 * cm
-            p.setFont("Helvetica-Bold", 10)
-            p.drawString(2 * cm, y, "Voluntar")
-            p.drawString(8.5 * cm, y, "Departament")
-            p.drawString(13 * cm, y, "Status")
-            p.drawString(16 * cm, y, "Check-in")
+            pdf.setFont("Helvetica-Bold", 10)
+            pdf.drawString(2 * cm, y, "Voluntar")
+            pdf.drawString(8.5 * cm, y, "Departament")
+            pdf.drawString(13 * cm, y, "Status")
+            pdf.drawString(16 * cm, y, "Check-in")
             y -= 0.4 * cm
-            p.line(2 * cm, y, 19 * cm, y)
+            pdf.line(2 * cm, y, 19 * cm, y)
             y -= 0.5 * cm
-            p.setFont("Helvetica", 9)
+            pdf.setFont("Helvetica", 9)
 
         nume = "-"
         departament = "-"
         if voluntar:
-            nume = f"{voluntar.prenume} {voluntar.nume}"
-            departament = voluntar.departament or "-"
+            nume = f"{getattr(voluntar, 'prenume', '')} {getattr(voluntar, 'nume', '')}".strip()
+            departament = getattr(voluntar, "departament", None) or "-"
 
-        status = pontaj.status or "-"
-        checkin = pontaj.oracheckin.strftime("%H:%M") if pontaj.oracheckin else "-"
+        status = getattr(row, "status", None) or "-"
+        ora_checkin = getattr(row, "oracheckin", None)
+        checkin = ora_checkin.strftime("%H:%M") if ora_checkin else "-"
 
-        p.drawString(2 * cm, y, nume[:34])
-        p.drawString(8.5 * cm, y, departament[:22])
-        p.drawString(13 * cm, y, status)
-        p.drawString(16 * cm, y, checkin)
+        pdf.drawString(2 * cm, y, nume[:34])
+        pdf.drawString(8.5 * cm, y, departament[:22])
+        pdf.drawString(13 * cm, y, status[:12])
+        pdf.drawString(16 * cm, y, checkin)
         y -= 0.55 * cm
 
-    p.save()
+    pdf.save()
     buffer.seek(0)
 
     return send_file(
