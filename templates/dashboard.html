@@ -90,6 +90,11 @@
 </head>
 <body>
 
+<audio id="dashboardAudio" preload="auto">
+  <source src="{{ url_for('static', filename='audio/dashboard.mp3') }}" type="audio/mpeg">
+  Browserul tău nu suportă audio.
+</audio>
+
 <nav class="navbar navbar-expand-lg navbar-dark topbar">
   <div class="container-fluid">
     <a class="navbar-brand" href="{{ url_for('index') }}">
@@ -272,6 +277,38 @@
       console.error(err);
     }
   }
+</script>
+
+<script>
+  const dashboardAudio = document.getElementById('dashboardAudio');
+  let dashboardAudioStarted = false;
+
+  function startDashboardAudio() {
+    if (!dashboardAudio || dashboardAudioStarted) return;
+    dashboardAudio.volume = 0.18;
+    dashboardAudio.loop = false;
+
+    const playPromise = dashboardAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        dashboardAudioStarted = true;
+      }).catch(() => {});
+    }
+  }
+
+  window.addEventListener('load', () => {
+    startDashboardAudio();
+  });
+
+  document.addEventListener('click', startDashboardAudio, { once: true });
+  document.addEventListener('touchstart', startDashboardAudio, { once: true });
+  document.addEventListener('keydown', startDashboardAudio, { once: true });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && dashboardAudio && !dashboardAudio.paused) {
+      dashboardAudio.pause();
+    }
+  });
 </script>
 
 </body>
