@@ -58,49 +58,53 @@ body {
   border-color: rgba(255,255,255,.35);
 }
 
-/* ============ BULINA VIȘINIE (logo mark) ============ */
+/* ============ BULINE LOGO (visiniu + alb) ============ */
 
-.brand-dot {
+.brand-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.dot-visiniu {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6b0018;
   display: inline-block;
-  width: 12px;
-  height: 12px;
+}
+
+.dot-alb {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #ffffff;
-  border: 3px solid var(--rapid-visiniu-inchis);
-  margin-right: 4px;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
-
-/* Variantă pentru fundal alb (ex: login) */
-.brand-dot-onlight {
+  border: 1px solid #6b0018;
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--rapid-visiniu);
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 1px var(--rapid-visiniu);
-  margin-right: 6px;
-  vertical-align: middle;
 }
 
-/* ============ POWERED BY — SPONSOR ============ */
+/* ============ POWERED BY — text simplu, nu link ============ */
 
 .powered-by {
-  color: var(--rapid-accent-light);
-  font-size: 11px;
-  font-weight: 600;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: .3px;
-  opacity: .9;
-  margin-top: -2px;
+  opacity: 1;
+  margin-top: 2px;
+  display: block;
+  pointer-events: none;
+  text-decoration: none;
+  cursor: default;
 }
 
 .powered-by strong {
-  color: #fff;
-  font-weight: 800;
+  color: #ffe8ea;
+  font-weight: 900;
 }
 
+/* Variantă pentru fundal alb (ex: login) */
 .powered-by-login {
   color: var(--rapid-visiniu);
   font-size: 12px;
@@ -109,19 +113,14 @@ body {
   margin-top: 10px;
   opacity: .85;
   text-align: center;
+  pointer-events: none;
+  text-decoration: none;
+  cursor: default;
 }
 
-.powered-by-footer {
-  text-align: center;
-  font-size: 11px;
-  color: #999;
-  font-weight: 600;
-  padding: 16px 0;
-  letter-spacing: .3px;
-}
-
-.powered-by-footer strong {
-  color: var(--rapid-visiniu);
+.powered-by-login strong {
+  color: var(--rapid-visiniu-inchis);
+  font-weight: 900;
 }
 
 /* ============ MAIN LAYOUT ============ */
@@ -200,7 +199,7 @@ body {
 .alert-danger  { background: #f8d7da; color: #721c24; }
 .alert-info    { background: #d1ecf1; color: #0c5460; }
 
-/* ============ BADGES ============ */
+/* ============ BADGES (rol/departament) ============ */
 
 .badge {
   display: inline-block;
@@ -221,6 +220,18 @@ body {
 .vin      { background: #d4edda; color: #155724; }
 .nu_vin   { background: #f8d7da; color: #721c24; }
 .poate    { background: #fff3cd; color: #856404; }
+
+/* ============ WELCOME BADGE (dashboard — rol pe fond visiniu) ============ */
+
+.welcome-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255,255,255,.2);
+  color: #fff;
+}
 
 /* ============ RESPONSIVE ============ */
 
